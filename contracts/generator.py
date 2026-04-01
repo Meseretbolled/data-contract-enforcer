@@ -21,9 +21,9 @@ python contracts/generator.py \
 
 import argparse
 import json
-import shutil
+import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -58,6 +58,33 @@ def infer_json_type(dtype_str: str) -> str:
     }.get(dtype_str, "string")
 
 
+def now_iso() -> str:
+    """Return current UTC time as ISO 8601 string. No deprecation warnings."""
+    return datetime.now(timezone.utc).isoformat()
+
+
+def now_stamp() -> str:
+    """Return current UTC time as YYYYMMDD_HHMMSS for filenames."""
+    return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+
+
+def _looks_like_uuid(sample_values: list) -> bool:
+    """
+    Return True only if the majority of sample values look like real UUIDs.
+
+    This prevents false positives like 'user_0', 'user_1' getting
+    assigned format:uuid just because their column name ends in '_id'.
+    """
+    pat = re.compile(
+        r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        re.IGNORECASE,
+    )
+    if not sample_values:
+        return False
+    matches = sum(1 for v in sample_values if pat.match(str(v)))
+    return matches >= len(sample_values) * 0.8
+
+
 # ── Step 1 — Flatten nested JSONL to a flat DataFrame ─────────────────────────
 
 def flatten_records(records: list[dict]) -> pd.DataFrame:
@@ -75,8 +102,7 @@ def flatten_records(records: list[dict]) -> pd.DataFrame:
     rows: list[dict] = []
 
     for record in records:
-        # Split scalars / dicts from list fields
-        base: dict = {}
+        base:   dict = {}
         arrays: dict = {}
 
         for key, val in record.items():
@@ -90,9 +116,8 @@ def flatten_records(records: list[dict]) -> pd.DataFrame:
                 base[key] = val
 
         if arrays:
-            # Explode the first array found
             primary_key = next(iter(arrays))
-            singular = primary_key.rstrip("s")          # extracted_facts → extracted_fact
+            singular    = primary_key.rstrip("s")   # extracted_facts -> extracted_fact
             for item in arrays[primary_key]:
                 if isinstance(item, dict):
                     row = dict(base)
@@ -145,7 +170,7 @@ def profile_column(series: pd.Series, col_name: str) -> dict:
                 if clean.max() > 1.0:
                     print(
                         f"  ⚠  ALERT: '{col_name}' max={clean.max():.2f} — "
-                        f"looks like 0–100 scale, not 0.0–1.0!"
+                        f"looks like 0-100 scale, not 0.0-1.0!"
                     )
                 elif clean.mean() > 0.99:
                     print(f"  ⚠  '{col_name}' mean={clean.mean():.4f} — possibly clamped at 1.0")
@@ -163,11 +188,11 @@ def profile_to_clause(profile: dict) -> dict:
 
     Rules (in priority order)
     -------------------------
-    1. confidence in name + numeric  →  minimum:0.0, maximum:1.0
-    2. name ends with _id            →  format:uuid
-    3. name ends with _at            →  format:date-time
-    4. low-cardinality string        →  enum:[…]
-    5. numeric with stats            →  description with observed range
+    1. confidence in name + numeric        ->  minimum:0.0, maximum:1.0
+    2. name ends with _id + looks like UUID ->  format:uuid
+    3. name ends with _at                  ->  format:date-time
+    4. low-cardinality string              ->  enum:[...]
+    5. numeric with stats                  ->  description with observed range
     """
     json_type = infer_json_type(profile["dtype"])
     clause: dict = {
@@ -175,27 +200,34 @@ def profile_to_clause(profile: dict) -> dict:
         "required": profile["null_fraction"] == 0.0,
     }
 
+    # Rule 1 — confidence range
     if "confidence" in profile["name"] and json_type == "number":
         clause["minimum"]     = 0.0
         clause["maximum"]     = 1.0
         clause["description"] = (
-            "Confidence score. MUST remain in 0.0–1.0 float range. "
-            "A value of 0.87 means 87 % confidence. "
-            "BREAKING CHANGE if converted to integer 0–100 percentage scale — "
+            "Confidence score. MUST remain in 0.0-1.0 float range. "
+            "A value of 0.87 means 87% confidence. "
+            "BREAKING CHANGE if converted to integer 0-100 percentage scale — "
             "all downstream threshold comparisons will silently produce wrong results."
         )
 
-    elif profile["name"].endswith("_id"):
+    # Rule 2 — UUID format (only if values actually look like UUIDs)
+    elif (
+        profile["name"].endswith("_id")
+        and _looks_like_uuid(profile["sample_values"])
+    ):
         clause["format"]      = "uuid"
         clause["description"] = (
             f"Unique identifier for "
             f"{profile['name'].replace('_id', '').replace('_', ' ')}. UUIDv4."
         )
 
+    # Rule 3 — timestamp format
     elif profile["name"].endswith("_at"):
         clause["format"]      = "date-time"
         clause["description"] = "ISO 8601 timestamp in UTC (Z suffix required)."
 
+    # Rule 4 — low-cardinality enum
     elif (
         json_type == "string"
         and 2 <= profile["cardinality"] <= 8
@@ -204,6 +236,7 @@ def profile_to_clause(profile: dict) -> dict:
         clause["enum"]        = sorted(profile["sample_values"])
         clause["description"] = f"Enumerated value. Allowed: {clause['enum']}."
 
+    # Rule 5 — numeric description with observed range
     if "stats" in profile and "description" not in clause:
         s = profile["stats"]
         clause["description"] = (
@@ -219,12 +252,10 @@ def profile_to_clause(profile: dict) -> dict:
 def load_downstream_consumers(lineage_path: str | None, contract_id: str) -> list[dict]:
     """
     Read the most recent Week 4 lineage snapshot and find nodes that
-    consume the table produced by *this* contract's system.
-
-    Returns a list of downstream consumer dicts for the contract lineage section.
+    consume the table produced by this contract's system.
     """
     if not lineage_path or not Path(lineage_path).exists():
-        print("  ℹ  No lineage file found — downstream consumers left empty.")
+        print("  i  No lineage file found — downstream consumers left empty.")
         return []
 
     try:
@@ -232,26 +263,61 @@ def load_downstream_consumers(lineage_path: str | None, contract_id: str) -> lis
         if not records:
             return []
 
-        snapshot = records[-1]                      # most recent snapshot
-        system   = contract_id.split("-")[0]        # "week3" from "week3-document-refinery-…"
+        snapshot = records[-1]
+        system   = contract_id.split("-")[0]   # "week3" from "week3-document-refinery-..."
 
         consumers: list[dict] = []
-        for edge in snapshot.get("edges", []):
+        edges = snapshot.get("edges", [])
+        nodes = snapshot.get("nodes", [])
+
+        # Build set of node IDs that belong to our system
+        our_nodes: set = set()
+        for node in nodes:
+            nid  = node.get("node_id", "")
+            path = node.get("metadata", {}).get("path", "")
+            if system in nid or system in path:
+                our_nodes.add(nid)
+
+        # Also add table nodes whose path contains our system's output
+        for node in nodes:
+            nid  = node.get("node_id", "")
+            path = node.get("metadata", {}).get("path", "")
+            if "outputs" in path and system in path.split("/")[-2:][0]:
+                our_nodes.add(nid)
+
+        # Hardcode the known table node for week3 and week5
+        if system == "week3":
+            our_nodes.add("table::extractions")
+        elif system == "week5":
+            our_nodes.add("table::events")
+
+        print(f"  🗺   Our system nodes : {our_nodes}")
+
+        for edge in edges:
             src = edge.get("source", "")
             tgt = edge.get("target", "")
             rel = edge.get("relationship", "")
 
-            # An edge FROM our system TO somewhere → "somewhere" consumes our output
-            if system in src and rel in ("WRITES", "PRODUCES", "CALLS"):
+            # Our node writes/produces to target -> target consumes us
+            if src in our_nodes and rel in ("WRITES", "PRODUCES", "CALLS"):
                 consumers.append({
-                    "id":                 tgt,
-                    "description":        "Downstream consumer identified via Week 4 lineage graph",
-                    "fields_consumed":    ["doc_id", "extracted_facts"],
+                    "id":                  tgt,
+                    "description":         f"Downstream: receives data via {rel} edge",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
+                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
+                })
+
+            # Someone reads from our node -> they consume us
+            if tgt in our_nodes and rel in ("READS", "CONSUMES"):
+                consumers.append({
+                    "id":                  src,
+                    "description":         f"Downstream: reads our output via {rel} edge",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
                     "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
                 })
 
         # Deduplicate by id
-        seen: set = set()
+        seen:   set  = set()
         unique: list = []
         for c in consumers:
             if c["id"] not in seen:
@@ -269,10 +335,10 @@ def load_downstream_consumers(lineage_path: str | None, contract_id: str) -> lis
 # ── Step 5 — Assemble the full Bitol contract dict ────────────────────────────
 
 def build_contract(
-    contract_id:  str,
-    source_path:  str,
+    contract_id:     str,
+    source_path:     str,
     column_profiles: dict,
-    downstream:   list[dict],
+    downstream:      list[dict],
 ) -> dict:
     schema = {
         col: profile_to_clause(prof)
@@ -289,7 +355,7 @@ def build_contract(
             "owner":       "data-engineering-team",
             "description": (
                 f"Auto-generated contract for {source_path}. "
-                f"Generated at {datetime.utcnow().isoformat()}Z. "
+                f"Generated at {now_iso()}. "
                 "Review and validate all clauses before use in production."
             ),
         },
@@ -302,7 +368,7 @@ def build_contract(
         },
         "terms": {
             "usage":       "Internal inter-system data contract. Do not publish externally.",
-            "limitations": "confidence fields MUST remain in 0.0–1.0 float range.",
+            "limitations": "confidence fields MUST remain in 0.0-1.0 float range.",
         },
         "schema": schema,
         "quality": {
@@ -329,22 +395,35 @@ def generate_dbt_yaml(contract: dict, contract_id: str, output_dir: str) -> None
 
     Mapping
     -------
-    required: true          →  not_null test
-    enum: [...]             →  accepted_values test
-    format: uuid            →  unique test  (IDs must be unique)
+    required: true        ->  not_null test
+    enum: [...]           ->  accepted_values test
+    format: uuid          ->  unique test
+    minimum + maximum     ->  expression_is_true range test
     """
     columns: list[dict] = []
 
     for col_name, clause in contract["schema"].items():
-        col: dict = {"name": col_name}
+        col:   dict = {"name": col_name}
         tests: list = []
 
         if clause.get("required"):
             tests.append("not_null")
+
         if "enum" in clause:
             tests.append({"accepted_values": {"values": clause["enum"]}})
+
         if clause.get("format") == "uuid":
             tests.append("unique")
+
+        if clause.get("minimum") is not None and clause.get("maximum") is not None:
+            tests.append({
+                "dbt_utils.expression_is_true": {
+                    "expression": (
+                        f"{col_name} >= {clause['minimum']} "
+                        f"and {col_name} <= {clause['maximum']}"
+                    )
+                }
+            })
 
         if tests:
             col["tests"] = tests
@@ -365,7 +444,7 @@ def generate_dbt_yaml(contract: dict, contract_id: str, output_dir: str) -> None
     dbt_path = Path(output_dir) / f"{contract_id}_dbt.yml"
     with open(dbt_path, "w", encoding="utf-8") as fh:
         yaml.dump(dbt_doc, fh, default_flow_style=False, sort_keys=False, allow_unicode=True)
-    print(f"  ✅  dbt schema written  → {dbt_path}")
+    print(f"  ✅  dbt schema written  -> {dbt_path}")
 
 
 # ── Step 6 — Save timestamped schema snapshot ─────────────────────────────────
@@ -375,16 +454,14 @@ def save_snapshot(contract: dict, contract_id: str) -> Path:
     Write a timestamped copy of the contract to schema_snapshots/{contract_id}/.
     These snapshots are consumed by SchemaEvolutionAnalyzer to detect changes.
     """
-    snap_dir = Path("schema_snapshots") / contract_id
+    snap_dir  = Path("schema_snapshots") / contract_id
     snap_dir.mkdir(parents=True, exist_ok=True)
-
-    ts      = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    snap_path = snap_dir / f"{ts}.yaml"
+    snap_path = snap_dir / f"{now_stamp()}.yaml"
 
     with open(snap_path, "w", encoding="utf-8") as fh:
         yaml.dump(contract, fh, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
-    print(f"  📸  Snapshot saved      → {snap_path}")
+    print(f"  📸  Snapshot saved      -> {snap_path}")
     return snap_path
 
 
@@ -397,7 +474,7 @@ def main() -> None:
     )
     parser.add_argument("--source",      required=True,  help="Path to input JSONL file")
     parser.add_argument("--contract-id", required=True,  help="Unique contract identifier")
-    parser.add_argument("--lineage",     default=None,   help="Path to Week 4 lineage JSONL (optional)")
+    parser.add_argument("--lineage",     default=None,   help="Path to Week 4 lineage JSONL")
     parser.add_argument("--output",      default="generated_contracts/", help="Output directory")
     args = parser.parse_args()
 
@@ -409,26 +486,26 @@ def main() -> None:
     print(f"  Lineage     : {args.lineage or '(not provided)'}")
     print(f"  Output      : {args.output}\n")
 
-    # ── 1. Load ──────────────────────────────────────────────────────
-    print("Step 1 — Loading data …")
+    # 1. Load
+    print("Step 1 — Loading data ...")
     records = load_jsonl(args.source)
     if not records:
         print("ERROR: No records found in source file.")
         sys.exit(1)
     print(f"  ✅  Loaded {len(records)} records")
 
-    # ── 2. Flatten ───────────────────────────────────────────────────
-    print("Step 2 — Flattening nested records …")
+    # 2. Flatten
+    print("Step 2 — Flattening nested records ...")
     df = flatten_records(records)
-    print(f"  ✅  DataFrame: {df.shape[0]} rows × {df.shape[1]} columns")
+    print(f"  ✅  DataFrame: {df.shape[0]} rows x {df.shape[1]} columns")
     print(f"  📋  Columns  : {list(df.columns)}")
 
-    # ── 3. Profile ───────────────────────────────────────────────────
-    print("Step 3 — Profiling columns …")
+    # 3. Profile
+    print("Step 3 — Profiling columns ...")
     column_profiles: dict = {}
     for col in df.columns:
         column_profiles[col] = profile_column(df[col], col)
-        p = column_profiles[col]
+        p    = column_profiles[col]
         line = (
             f"  📊  {col:<45} "
             f"type={p['dtype']:<10} "
@@ -436,17 +513,17 @@ def main() -> None:
             f"cardinality={p['cardinality']}"
         )
         if "stats" in p:
-            s = p["stats"]
+            s     = p["stats"]
             line += f"  range=[{s['min']:.3f}, {s['max']:.3f}]"
         print(line)
 
-    # ── 4. Lineage ───────────────────────────────────────────────────
-    print("Step 4 — Loading lineage context …")
+    # 4. Lineage
+    print("Step 4 — Loading lineage context ...")
     downstream = load_downstream_consumers(args.lineage, args.contract_id)
 
-    # ── 5. Build contract ────────────────────────────────────────────
-    print("Step 5 — Building contract …")
-    contract = build_contract(
+    # 5. Build
+    print("Step 5 — Building contract ...")
+    contract    = build_contract(
         contract_id      = args.contract_id,
         source_path      = args.source,
         column_profiles  = column_profiles,
@@ -456,24 +533,21 @@ def main() -> None:
     print(f"  ✅  {num_clauses} schema clause(s) generated")
 
     if num_clauses < 8:
-        print(
-            f"  ⚠  Only {num_clauses} clauses. Minimum is 8. "
-            "Consider whether the source data has enough columns."
-        )
+        print(f"  ⚠  Only {num_clauses} clauses — minimum is 8.")
 
-    # ── 6. Write YAML ────────────────────────────────────────────────
+    # 6. Write YAML
     Path(args.output).mkdir(parents=True, exist_ok=True)
     out_path = Path(args.output) / f"{args.contract_id}.yaml"
     with open(out_path, "w", encoding="utf-8") as fh:
         yaml.dump(contract, fh, default_flow_style=False, sort_keys=False, allow_unicode=True)
-    print(f"  ✅  Contract written    → {out_path}")
+    print(f"  ✅  Contract written    -> {out_path}")
 
-    # ── 7. Write dbt YAML ────────────────────────────────────────────
-    print("Step 6 — Generating dbt schema.yml …")
+    # 7. Write dbt YAML
+    print("Step 6 — Generating dbt schema.yml ...")
     generate_dbt_yaml(contract, args.contract_id, args.output)
 
-    # ── 8. Save snapshot ─────────────────────────────────────────────
-    print("Step 7 — Saving schema snapshot …")
+    # 8. Save snapshot
+    print("Step 7 — Saving schema snapshot ...")
     save_snapshot(contract, args.contract_id)
 
     print(f"\n{'='*60}")

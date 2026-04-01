@@ -2,7 +2,8 @@ version: 2
 models:
 - name: week5_event_records
   description: Auto-generated contract for outputs/week5/events.jsonl. Generated at
-    2026-04-01T19:59:29.935424Z. Review and validate all clauses before use in production.
+    2026-04-01T20:25:11.171554+00:00. Review and validate all clauses before use in
+    production.
   columns:
   - name: event_id
     tests:
@@ -30,9 +31,6 @@ models:
     - unique
     description: Unique identifier for payload doc. UUIDv4.
   - name: metadata_causation_id
-    tests:
-    - unique
-    description: Unique identifier for metadata causation. UUIDv4.
   - name: metadata_correlation_id
     tests:
     - not_null
@@ -41,8 +39,6 @@ models:
   - name: metadata_user_id
     tests:
     - not_null
-    - unique
-    description: Unique identifier for metadata user. UUIDv4.
   - name: metadata_source_service
     tests:
     - not_null

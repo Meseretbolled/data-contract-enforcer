@@ -6,7 +6,8 @@ info:
   version: 1.0.0
   owner: data-engineering-team
   description: Auto-generated contract for outputs/week5/events.jsonl. Generated at
-    2026-04-01T19:59:29.935424Z. Review and validate all clauses before use in production.
+    2026-04-01T20:25:11.171554+00:00. Review and validate all clauses before use in
+    production.
 servers:
   local:
     type: local
@@ -14,7 +15,7 @@ servers:
     format: jsonl
 terms:
   usage: Internal inter-system data contract. Do not publish externally.
-  limitations: confidence fields MUST remain in 0.0–1.0 float range.
+  limitations: confidence fields MUST remain in 0.0-1.0 float range.
 schema:
   event_id:
     type: string
@@ -44,8 +45,6 @@ schema:
   metadata_causation_id:
     type: string
     required: false
-    format: uuid
-    description: Unique identifier for metadata causation. UUIDv4.
   metadata_correlation_id:
     type: string
     required: true
@@ -54,8 +53,6 @@ schema:
   metadata_user_id:
     type: string
     required: true
-    format: uuid
-    description: Unique identifier for metadata user. UUIDv4.
   metadata_source_service:
     type: string
     required: true
