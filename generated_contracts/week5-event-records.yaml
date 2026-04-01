@@ -6,7 +6,7 @@ info:
   version: 1.0.0
   owner: data-engineering-team
   description: Auto-generated contract for outputs/week5/events.jsonl. Generated at
-    2026-04-01T20:25:11.171554+00:00. Review and validate all clauses before use in
+    2026-04-01T20:38:07.060114+00:00. Review and validate all clauses before use in
     production.
 servers:
   local:
@@ -77,4 +77,13 @@ quality:
     - row_count >= 1
 lineage:
   upstream: []
-  downstream: []
+  downstream:
+  - id: file::src/week7/contract_enforcer.py
+    description: 'Downstream: file::src/week7/contract_enforcer.py reads from week5
+      table'
+    fields_consumed:
+    - doc_id
+    - extracted_facts
+    breaking_if_changed:
+    - extracted_facts.confidence
+    - doc_id

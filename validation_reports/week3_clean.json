@@ -1,10 +1,10 @@
 {
-  "report_id": "f598d9ed-640c-44f4-b552-f6d4e4734f37",
+  "report_id": "740f5fcf-5279-42b9-b64f-17a67438e048",
   "contract_id": "week3-document-refinery-extractions",
   "snapshot_id": "4c6eb1f97bf03d304d643e0498014c6840a0c3f0b753812c483a3c0878acd42e",
-  "run_timestamp": "2026-04-01T20:25:19.174779+00:00",
-  "total_checks": 31,
-  "passed": 31,
+  "run_timestamp": "2026-04-01T20:38:07.693076+00:00",
+  "total_checks": 30,
+  "passed": 30,
   "failed": 0,
   "warned": 0,
   "errored": 0,
@@ -284,18 +284,6 @@
       "records_failing": 0,
       "sample_failing": [],
       "message": "extracted_fact_text type check passed."
-    },
-    {
-      "check_id": "week3-document-refinery-extractions.extracted_fact_text.enum",
-      "column_name": "extracted_fact_text",
-      "check_type": "enum",
-      "status": "PASS",
-      "actual_value": "all in ['Sample fact 0', 'Sample fact 1', 'Sample fact 2']",
-      "expected": "one of ['Sample fact 0', 'Sample fact 1', 'Sample fact 2']",
-      "severity": "LOW",
-      "records_failing": 0,
-      "sample_failing": [],
-      "message": "extracted_fact_text enum check passed."
     },
     {
       "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.required",

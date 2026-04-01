@@ -6,7 +6,7 @@ info:
   version: 1.0.0
   owner: data-engineering-team
   description: Auto-generated contract for outputs/week3/extractions.jsonl. Generated
-    at 2026-04-01T20:25:02.031393+00:00. Review and validate all clauses before use
+    at 2026-04-01T20:37:40.305966+00:00. Review and validate all clauses before use
     in production.
 servers:
   local:
@@ -56,12 +56,6 @@ schema:
   extracted_fact_text:
     type: string
     required: true
-    enum:
-    - Sample fact 0
-    - Sample fact 1
-    - Sample fact 2
-    description: 'Enumerated value. Allowed: [''Sample fact 0'', ''Sample fact 1'',
-      ''Sample fact 2''].'
   extracted_fact_confidence:
     type: number
     required: true
@@ -85,4 +79,21 @@ quality:
     - missing_count(doc_id) = 0
 lineage:
   upstream: []
-  downstream: []
+  downstream:
+  - id: file::src/week4/cartographer.py
+    description: 'Downstream: file::src/week4/cartographer.py reads from week3 table'
+    fields_consumed:
+    - doc_id
+    - extracted_facts
+    breaking_if_changed:
+    - extracted_facts.confidence
+    - doc_id
+  - id: file::src/week7/contract_enforcer.py
+    description: 'Downstream: file::src/week7/contract_enforcer.py reads from week3
+      table'
+    fields_consumed:
+    - doc_id
+    - extracted_facts
+    breaking_if_changed:
+    - extracted_facts.confidence
+    - doc_id

@@ -2,7 +2,7 @@ version: 2
 models:
 - name: week5_event_records
   description: Auto-generated contract for outputs/week5/events.jsonl. Generated at
-    2026-04-01T20:25:11.171554+00:00. Review and validate all clauses before use in
+    2026-04-01T20:38:07.060114+00:00. Review and validate all clauses before use in
     production.
   columns:
   - name: event_id

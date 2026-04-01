@@ -2,7 +2,7 @@ version: 2
 models:
 - name: week3_document_refinery_extractions
   description: Auto-generated contract for outputs/week3/extractions.jsonl. Generated
-    at 2026-04-01T20:25:02.031393+00:00. Review and validate all clauses before use
+    at 2026-04-01T20:37:40.305966+00:00. Review and validate all clauses before use
     in production.
   columns:
   - name: doc_id
@@ -43,13 +43,6 @@ models:
   - name: extracted_fact_text
     tests:
     - not_null
-    - accepted_values:
-        values:
-        - Sample fact 0
-        - Sample fact 1
-        - Sample fact 2
-    description: 'Enumerated value. Allowed: [''Sample fact 0'', ''Sample fact 1'',
-      ''Sample fact 2''].'
   - name: extracted_fact_confidence
     tests:
     - not_null

@@ -71,9 +71,8 @@ def now_stamp() -> str:
 def _looks_like_uuid(sample_values: list) -> bool:
     """
     Return True only if the majority of sample values look like real UUIDs.
-
-    This prevents false positives like 'user_0', 'user_1' getting
-    assigned format:uuid just because their column name ends in '_id'.
+    Prevents false positives like 'user_0', 'user_1' getting format:uuid
+    just because their column name ends in '_id'.
     """
     pat = re.compile(
         r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
@@ -165,7 +164,6 @@ def profile_column(series: pd.Series, col_name: str) -> dict:
                 "p99":    float(clean.quantile(0.99)),
                 "stddev": float(clean.std()),
             }
-            # Confidence-specific sanity checks
             if "confidence" in col_name:
                 if clean.max() > 1.0:
                     print(
@@ -182,17 +180,21 @@ def profile_column(series: pd.Series, col_name: str) -> dict:
 
 # ── Step 3 — Translate a profile to a Bitol contract clause ───────────────────
 
+# Columns that should NEVER be treated as enums even if low cardinality
+_NEVER_ENUM = {"text", "excerpt", "path", "hash", "model", "service", "version"}
+
+
 def profile_to_clause(profile: dict) -> dict:
     """
     Apply mapping rules to convert a column profile into a contract clause dict.
 
     Rules (in priority order)
     -------------------------
-    1. confidence in name + numeric        ->  minimum:0.0, maximum:1.0
-    2. name ends with _id + looks like UUID ->  format:uuid
-    3. name ends with _at                  ->  format:date-time
-    4. low-cardinality string              ->  enum:[...]
-    5. numeric with stats                  ->  description with observed range
+    1. confidence in name + numeric         ->  minimum:0.0, maximum:1.0
+    2. name ends with _id + UUID values     ->  format:uuid
+    3. name ends with _at                   ->  format:date-time
+    4. low-cardinality string (safe cols)   ->  enum:[...]
+    5. numeric with stats                   ->  description with observed range
     """
     json_type = infer_json_type(profile["dtype"])
     clause: dict = {
@@ -200,7 +202,7 @@ def profile_to_clause(profile: dict) -> dict:
         "required": profile["null_fraction"] == 0.0,
     }
 
-    # Rule 1 — confidence range
+    # Rule 1 — confidence range (most important clause in the whole project)
     if "confidence" in profile["name"] and json_type == "number":
         clause["minimum"]     = 0.0
         clause["maximum"]     = 1.0
@@ -227,11 +229,12 @@ def profile_to_clause(profile: dict) -> dict:
         clause["format"]      = "date-time"
         clause["description"] = "ISO 8601 timestamp in UTC (Z suffix required)."
 
-    # Rule 4 — low-cardinality enum
+    # Rule 4 — low-cardinality enum (exclude free-text, hashes, paths etc.)
     elif (
         json_type == "string"
         and 2 <= profile["cardinality"] <= 8
         and profile["cardinality"] == len(profile["sample_values"])
+        and not any(skip in profile["name"] for skip in _NEVER_ENUM)
     ):
         clause["enum"]        = sorted(profile["sample_values"])
         clause["description"] = f"Enumerated value. Allowed: {clause['enum']}."
@@ -253,6 +256,12 @@ def load_downstream_consumers(lineage_path: str | None, contract_id: str) -> lis
     """
     Read the most recent Week 4 lineage snapshot and find nodes that
     consume the table produced by this contract's system.
+
+    Searches all four edge patterns:
+    1. tgt in our_nodes + READS/CONSUMES  -> src reads from us
+    2. src in our_nodes + WRITES/PRODUCES -> we write to tgt
+    3. src in our_nodes + READS           -> our table is source of READS edge
+    4. tgt in our_nodes + PRODUCES        -> someone produces into our table
     """
     if not lineage_path or not Path(lineage_path).exists():
         print("  i  No lineage file found — downstream consumers left empty.")
@@ -265,58 +274,79 @@ def load_downstream_consumers(lineage_path: str | None, contract_id: str) -> lis
 
         snapshot = records[-1]
         system   = contract_id.split("-")[0]   # "week3" from "week3-document-refinery-..."
+        edges    = snapshot.get("edges", [])
+        nodes    = snapshot.get("nodes", [])
 
-        consumers: list[dict] = []
-        edges = snapshot.get("edges", [])
-        nodes = snapshot.get("nodes", [])
-
-        # Build set of node IDs that belong to our system
+        # ── Build set of node IDs belonging to our system ──────────
         our_nodes: set = set()
+
+        # Match by node_id or path containing system name
         for node in nodes:
             nid  = node.get("node_id", "")
             path = node.get("metadata", {}).get("path", "")
             if system in nid or system in path:
                 our_nodes.add(nid)
 
-        # Also add table nodes whose path contains our system's output
-        for node in nodes:
-            nid  = node.get("node_id", "")
-            path = node.get("metadata", {}).get("path", "")
-            if "outputs" in path and system in path.split("/")[-2:][0]:
-                our_nodes.add(nid)
-
-        # Hardcode the known table node for week3 and week5
-        if system == "week3":
-            our_nodes.add("table::extractions")
-        elif system == "week5":
-            our_nodes.add("table::events")
+        # Always include the known table node for each system
+        table_map = {
+            "week3": "table::extractions",
+            "week5": "table::events",
+        }
+        if system in table_map:
+            our_nodes.add(table_map[system])
 
         print(f"  🗺   Our system nodes : {our_nodes}")
+
+        # ── Find downstream consumers via all edge patterns ─────────
+        consumers: list[dict] = []
 
         for edge in edges:
             src = edge.get("source", "")
             tgt = edge.get("target", "")
             rel = edge.get("relationship", "")
 
-            # Our node writes/produces to target -> target consumes us
-            if src in our_nodes and rel in ("WRITES", "PRODUCES", "CALLS"):
-                consumers.append({
-                    "id":                  tgt,
-                    "description":         f"Downstream: receives data via {rel} edge",
-                    "fields_consumed":     ["doc_id", "extracted_facts"],
-                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
-                })
-
-            # Someone reads from our node -> they consume us
+            # Pattern 1: someone READS/CONSUMES from our node (our node is target)
+            # e.g. week4/cartographer.py --READS--> table::extractions  (wrong direction)
             if tgt in our_nodes and rel in ("READS", "CONSUMES"):
                 consumers.append({
                     "id":                  src,
-                    "description":         f"Downstream: reads our output via {rel} edge",
+                    "description":         f"Downstream: reads {system} output via {rel}",
                     "fields_consumed":     ["doc_id", "extracted_facts"],
                     "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
                 })
 
-        # Deduplicate by id
+            # Pattern 2: our node WRITES/PRODUCES to somewhere (our node is source)
+            # e.g. file::src/week3/extractor.py --WRITES--> table::extractions
+            # Skip if target is also our own node
+            if src in our_nodes and rel in ("WRITES", "PRODUCES") and tgt not in our_nodes:
+                consumers.append({
+                    "id":                  tgt,
+                    "description":         f"Downstream: receives {system} data via {rel}",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
+                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
+                })
+
+            # Pattern 3: our TABLE is SOURCE of a READS edge
+            # e.g. table::extractions --READS--> file::src/week4/cartographer.py
+            # This is how our lineage file is structured
+            if src in our_nodes and rel == "READS":
+                consumers.append({
+                    "id":                  tgt,
+                    "description":         f"Downstream: {tgt} reads from {system} table",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
+                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
+                })
+
+            # Pattern 4: our node is target of PRODUCES edge
+            if tgt in our_nodes and rel == "PRODUCES":
+                consumers.append({
+                    "id":                  src,
+                    "description":         f"Downstream: {src} produces into {system} table",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
+                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
+                })
+
+        # ── Deduplicate by id ───────────────────────────────────────
         seen:   set  = set()
         unique: list = []
         for c in consumers:
@@ -524,10 +554,10 @@ def main() -> None:
     # 5. Build
     print("Step 5 — Building contract ...")
     contract    = build_contract(
-        contract_id      = args.contract_id,
-        source_path      = args.source,
-        column_profiles  = column_profiles,
-        downstream       = downstream,
+        contract_id     = args.contract_id,
+        source_path     = args.source,
+        column_profiles = column_profiles,
+        downstream      = downstream,
     )
     num_clauses = len(contract["schema"])
     print(f"  ✅  {num_clauses} schema clause(s) generated")
