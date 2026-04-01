@@ -1,0 +1,35 @@
+{
+  "written_at": "2026-04-01T19:59:37.898303Z",
+  "columns": {
+    "processing_time_ms": {
+      "mean": 1265.2,
+      "stddev": 391.6605330568328,
+      "min": 565.0,
+      "max": 1899.0
+    },
+    "token_count_input": {
+      "mean": 4000.0,
+      "stddev": 0.0,
+      "min": 4000.0,
+      "max": 4000.0
+    },
+    "token_count_output": {
+      "mean": 800.0,
+      "stddev": 0.0,
+      "min": 800.0,
+      "max": 800.0
+    },
+    "extracted_fact_confidence": {
+      "mean": 0.7530666666666667,
+      "stddev": 0.13547305468565068,
+      "min": 0.5,
+      "max": 0.99
+    },
+    "extracted_fact_page_ref": {
+      "mean": 5.473333333333334,
+      "stddev": 2.8205779470273944,
+      "min": 1.0,
+      "max": 10.0
+    }
+  }
+}

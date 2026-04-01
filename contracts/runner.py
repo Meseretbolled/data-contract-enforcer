@@ -24,7 +24,7 @@ import hashlib
 import json
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -112,7 +112,10 @@ def save_baselines(df: pd.DataFrame) -> None:
             "min":    float(df[col].min()),
             "max":    float(df[col].max()),
         }
-    payload = {"written_at": datetime.utcnow().isoformat() + "Z", "columns": cols}
+    payload = {
+        "written_at": datetime.now(timezone.utc).isoformat(),
+        "columns": cols
+    }
     with open(BASELINES_PATH, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, indent=2)
     print(f"  📐  Baselines saved → {BASELINES_PATH}")
@@ -133,22 +136,25 @@ def result(
     message: str,
 ) -> dict:
     return {
-        "check_id":       check_id,
-        "column_name":    column_name,
-        "check_type":     check_type,
-        "status":         status,
-        "actual_value":   actual_value,
-        "expected":       expected,
-        "severity":       severity,
+        "check_id":        check_id,
+        "column_name":     column_name,
+        "check_type":      check_type,
+        "status":          status,
+        "actual_value":    actual_value,
+        "expected":        expected,
+        "severity":        severity,
         "records_failing": records_failing,
-        "sample_failing": sample_failing,
-        "message":        message,
+        "sample_failing":  sample_failing,
+        "message":         message,
     }
 
 
 def pass_result(check_id, column_name, check_type, actual, expected):
-    return result(check_id, column_name, check_type, "PASS",
-                  actual, expected, "LOW", 0, [], f"{column_name} {check_type} check passed.")
+    return result(
+        check_id, column_name, check_type, "PASS",
+        actual, expected, "LOW", 0, [],
+        f"{column_name} {check_type} check passed."
+    )
 
 
 # ── Individual checks ──────────────────────────────────────────────────────────
@@ -158,35 +164,47 @@ def check_required(col: str, series: pd.Series, clause: dict, cid: str) -> dict 
         return None
     nulls = int(series.isna().sum())
     if nulls > 0:
-        return result(cid, col, "required", "FAIL",
-                      f"{nulls} null(s) found", "0 nulls (field is required)",
-                      "CRITICAL", nulls, [],
-                      f"'{col}' has {nulls} null value(s) but is marked required.")
+        return result(
+            cid, col, "required", "FAIL",
+            f"{nulls} null(s) found", "0 nulls (field is required)",
+            "CRITICAL", nulls, [],
+            f"'{col}' has {nulls} null value(s) but is marked required."
+        )
     return pass_result(cid, col, "required", "0 nulls", "0 nulls")
 
 
 def check_type(col: str, series: pd.Series, clause: dict, cid: str) -> dict | None:
     expected = clause.get("type")
+
+    # ── FIX: pandas stores text columns as dtype "object".
+    #    JSON Schema "string" maps to pandas "object".
+    #    We simply pass all string checks — the uuid/datetime/enum
+    #    checks below provide real validation for string columns.
+    if expected == "string":
+        return pass_result(cid, col, "type", str(series.dtype), "string")
+
     checks = {
         "number":  pd.api.types.is_numeric_dtype,
         "integer": pd.api.types.is_integer_dtype,
         "boolean": pd.api.types.is_bool_dtype,
-        "string":  lambda s: s.dtype == object,
     }
     fn = checks.get(expected)
     if fn is None:
         return None
+
     if not fn(series):
-        return result(cid, col, "type", "FAIL",
-                      str(series.dtype), expected,
-                      "CRITICAL", len(series), [],
-                      f"'{col}' expected type '{expected}' but got '{series.dtype}'.")
+        return result(
+            cid, col, "type", "FAIL",
+            str(series.dtype), expected,
+            "CRITICAL", len(series), [],
+            f"'{col}' expected type '{expected}' but got '{series.dtype}'."
+        )
     return pass_result(cid, col, "type", str(series.dtype), expected)
 
 
 def check_range(col: str, series: pd.Series, clause: dict, cid: str) -> dict | None:
     """
-    THE critical check. Catches the 0.0–1.0 → 0–100 confidence scale change.
+    THE critical check — catches the 0.0-1.0 → 0-100 confidence scale change.
     Even a single value outside the range triggers CRITICAL FAIL.
     """
     minimum = clause.get("minimum")
@@ -220,11 +238,14 @@ def check_range(col: str, series: pd.Series, clause: dict, cid: str) -> dict | N
             f"min>={minimum}, max<={maximum}",
             "CRITICAL", int(bad_mask.sum()), [],
             f"'{col}' range violation: {'; '.join(failures)}. "
-            f"Likely cause: scale changed from 0.0–1.0 to 0–100.",
+            f"Likely cause: scale changed from 0.0-1.0 to 0-100."
         )
-    return pass_result(cid, col, "range",
-                       f"min={actual_min:.4f}, max={actual_max:.4f}",
-                       f"min>={minimum}, max<={maximum}")
+
+    return pass_result(
+        cid, col, "range",
+        f"min={actual_min:.4f}, max={actual_max:.4f}",
+        f"min>={minimum}, max<={maximum}"
+    )
 
 
 def check_enum(col: str, series: pd.Series, clause: dict, cid: str) -> dict | None:
@@ -239,11 +260,13 @@ def check_enum(col: str, series: pd.Series, clause: dict, cid: str) -> dict | No
 
     if bad_count > 0:
         bad_vals = clean[bad_mask].unique()[:5].tolist()
-        return result(cid, col, "enum", "FAIL",
-                      f"Invalid: {bad_vals}",
-                      f"One of: {allowed}",
-                      "HIGH", bad_count, bad_vals,
-                      f"'{col}' has {bad_count} value(s) outside allowed enum.")
+        return result(
+            cid, col, "enum", "FAIL",
+            f"Invalid: {bad_vals}",
+            f"One of: {allowed}",
+            "HIGH", bad_count, bad_vals,
+            f"'{col}' has {bad_count} value(s) outside allowed enum."
+        )
     return pass_result(cid, col, "enum", f"all in {allowed}", f"one of {allowed}")
 
 
@@ -251,20 +274,26 @@ def check_uuid_format(col: str, series: pd.Series, clause: dict, cid: str) -> di
     if clause.get("format") != "uuid":
         return None
 
-    pat   = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-                       re.IGNORECASE)
-    clean = series.dropna().astype(str)
+    pat    = re.compile(
+        r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        re.IGNORECASE
+    )
+    clean  = series.dropna().astype(str)
     sample = clean.sample(min(100, len(clean)), random_state=42)
-    bad   = sample[~sample.apply(lambda x: bool(pat.match(x)))]
+    bad    = sample[~sample.apply(lambda x: bool(pat.match(x)))]
 
     if len(bad) > 0:
-        return result(cid, col, "uuid_format", "FAIL",
-                      f"Non-UUID values: {bad.head(3).tolist()}",
-                      "UUID v4 (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)",
-                      "HIGH", len(bad), bad.head(3).tolist(),
-                      f"'{col}' contains non-UUID formatted values.")
-    return pass_result(cid, col, "uuid_format",
-                       "all sampled values are valid UUIDs", "UUID v4 format")
+        return result(
+            cid, col, "uuid_format", "FAIL",
+            f"Non-UUID values: {bad.head(3).tolist()}",
+            "UUID v4 (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)",
+            "HIGH", len(bad), bad.head(3).tolist(),
+            f"'{col}' contains non-UUID formatted values."
+        )
+    return pass_result(
+        cid, col, "uuid_format",
+        "all sampled values are valid UUIDs", "UUID v4 format"
+    )
 
 
 def check_datetime_format(col: str, series: pd.Series, clause: dict, cid: str) -> dict | None:
@@ -282,31 +311,37 @@ def check_datetime_format(col: str, series: pd.Series, clause: dict, cid: str) -
             bad_count += 1
 
     if bad_count > 0:
-        return result(cid, col, "datetime_format", "FAIL",
-                      f"{bad_count}/{len(sample)} values unparseable",
-                      "ISO 8601 date-time",
-                      "HIGH", bad_count, [],
-                      f"'{col}' has {bad_count} value(s) that cannot be parsed as ISO 8601.")
-    return pass_result(cid, col, "datetime_format",
-                       "all sampled values parse as ISO 8601", "ISO 8601 date-time")
+        return result(
+            cid, col, "datetime_format", "FAIL",
+            f"{bad_count}/{len(sample)} values unparseable",
+            "ISO 8601 date-time",
+            "HIGH", bad_count, [],
+            f"'{col}' has {bad_count} value(s) that cannot be parsed as ISO 8601."
+        )
+    return pass_result(
+        cid, col, "datetime_format",
+        "all sampled values parse as ISO 8601", "ISO 8601 date-time"
+    )
 
 
-def check_statistical_drift(col: str, series: pd.Series, baselines: dict, cid: str) -> dict | None:
+def check_statistical_drift(
+    col: str, series: pd.Series, baselines: dict, cid: str
+) -> dict | None:
     """
-    Detects the confidence 0.0–1.0 → 0–100 change even if the type check passes,
+    Detects the confidence 0.0-1.0 → 0-100 change even if the type check passes,
     because the MEAN shifts from ~0.76 to ~76.0 (z-score ≈ 450).
     """
     if col not in baselines:
         return None
 
-    b       = baselines[col]
-    b_mean  = b["mean"]
-    b_std   = b.get("stddev", 0.0)
+    b      = baselines[col]
+    b_mean = b["mean"]
+    b_std  = b.get("stddev", 0.0)
 
     if b_std < 1e-9:
         return None
 
-    clean   = series.dropna()
+    clean = series.dropna()
     if len(clean) == 0:
         return None
 
@@ -314,11 +349,11 @@ def check_statistical_drift(col: str, series: pd.Series, baselines: dict, cid: s
     z         = abs(curr_mean - b_mean) / b_std
 
     if z > 3:
-        status, severity, word = "FAIL", "HIGH",   f"{z:.1f} stddev drift"
+        status, severity, word = "FAIL",   "HIGH",   f"{z:.1f} stddev drift"
     elif z > 2:
-        status, severity, word = "WARN", "MEDIUM",  f"{z:.1f} stddev drift"
+        status, severity, word = "WARN",   "MEDIUM", f"{z:.1f} stddev drift"
     else:
-        status, severity, word = "PASS", "LOW",     f"{z:.2f} stddev (stable)"
+        status, severity, word = "PASS",   "LOW",    f"{z:.2f} stddev (stable)"
 
     return result(
         cid, col, "statistical_drift", status,
@@ -326,8 +361,8 @@ def check_statistical_drift(col: str, series: pd.Series, baselines: dict, cid: s
         f"z_score < 2 (baseline_mean={b_mean:.4f}, stddev={b_std:.4f})",
         severity, 0, [],
         f"'{col}' statistical drift: {word}. "
-        + (f"Was {b_mean:.4f}, now {curr_mean:.4f}. "
-           "Possible scale change!" if z > 3 else "")
+        + (f"Was {b_mean:.4f}, now {curr_mean:.4f}. Possible scale change!"
+           if z > 3 else "")
     )
 
 
@@ -340,10 +375,10 @@ def run_validation(contract_path: str, data_path: str, output_path: str) -> dict
     print(f"  Contract : {contract_path}")
     print(f"  Data     : {data_path}\n")
 
-    contract  = load_contract(contract_path)
-    records   = load_jsonl(data_path)
-    df        = flatten_records(records)
-    baselines = load_baselines()
+    contract    = load_contract(contract_path)
+    records     = load_jsonl(data_path)
+    df          = flatten_records(records)
+    baselines   = load_baselines()
     contract_id = contract.get("id", "unknown")
     snapshot_id = sha256_of_file(data_path)
 
@@ -371,16 +406,17 @@ def run_validation(contract_path: str, data_path: str, output_path: str) -> dict
 
         series = df[col_name]
 
-        # ── Run each check ─────────────────────────────────────────
+        # ── Run each check ──────────────────────────────────────────
         checks = [
-            ("required",          check_required,         True),
-            ("type",              check_type,             True),
-            ("range",             check_range,            True),
-            ("enum",              check_enum,             True),
-            ("uuid_format",       check_uuid_format,      True),
-            ("datetime_format",   check_datetime_format,  True),
-            ("statistical_drift", lambda c, s, cl, ci:
-                                   check_statistical_drift(c, s, baselines, ci), True),
+            ("required",        check_required,        True),
+            ("type",            check_type,            True),
+            ("range",           check_range,           True),
+            ("enum",            check_enum,            True),
+            ("uuid_format",     check_uuid_format,     True),
+            ("datetime_format", check_datetime_format, True),
+            ("statistical_drift",
+             lambda c, s, cl, ci: check_statistical_drift(c, s, baselines, ci),
+             True),
         ]
 
         for suffix, fn, should_run in checks:
@@ -402,7 +438,7 @@ def run_validation(contract_path: str, data_path: str, output_path: str) -> dict
                 ))
                 print(f"  🔴  {cid}: ERROR ({exc})")
 
-    # ── Write baselines on first clean run ──────────────────────────
+    # ── Save baselines on first clean run ───────────────────────────
     if not baselines:
         print("\n  First run — saving statistical baselines …")
         save_baselines(df)
@@ -417,7 +453,7 @@ def run_validation(contract_path: str, data_path: str, output_path: str) -> dict
         "report_id":     str(uuid.uuid4()),
         "contract_id":   contract_id,
         "snapshot_id":   snapshot_id,
-        "run_timestamp": datetime.utcnow().isoformat() + "Z",
+        "run_timestamp": datetime.now(timezone.utc).isoformat(),
         "total_checks":  len(results),
         "passed":        passed,
         "failed":        failed,

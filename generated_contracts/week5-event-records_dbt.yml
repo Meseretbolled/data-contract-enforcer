@@ -1,0 +1,59 @@
+version: 2
+models:
+- name: week5_event_records
+  description: Auto-generated contract for outputs/week5/events.jsonl. Generated at
+    2026-04-01T19:59:29.935424Z. Review and validate all clauses before use in production.
+  columns:
+  - name: event_id
+    tests:
+    - not_null
+    - unique
+    description: Unique identifier for event. UUIDv4.
+  - name: event_type
+    tests:
+    - not_null
+  - name: aggregate_id
+    tests:
+    - not_null
+    - unique
+    description: Unique identifier for aggregate. UUIDv4.
+  - name: aggregate_type
+    tests:
+    - not_null
+  - name: sequence_number
+    tests:
+    - not_null
+    description: Observed range [1.000, 50.000], mean=25.500, stddev=14.577.
+  - name: payload_doc_id
+    tests:
+    - not_null
+    - unique
+    description: Unique identifier for payload doc. UUIDv4.
+  - name: metadata_causation_id
+    tests:
+    - unique
+    description: Unique identifier for metadata causation. UUIDv4.
+  - name: metadata_correlation_id
+    tests:
+    - not_null
+    - unique
+    description: Unique identifier for metadata correlation. UUIDv4.
+  - name: metadata_user_id
+    tests:
+    - not_null
+    - unique
+    description: Unique identifier for metadata user. UUIDv4.
+  - name: metadata_source_service
+    tests:
+    - not_null
+  - name: schema_version
+    tests:
+    - not_null
+  - name: occurred_at
+    tests:
+    - not_null
+    description: ISO 8601 timestamp in UTC (Z suffix required).
+  - name: recorded_at
+    tests:
+    - not_null
+    description: ISO 8601 timestamp in UTC (Z suffix required).

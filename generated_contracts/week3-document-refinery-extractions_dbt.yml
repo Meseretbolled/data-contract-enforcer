@@ -1,0 +1,65 @@
+version: 2
+models:
+- name: week3_document_refinery_extractions
+  description: Auto-generated contract for outputs/week3/extractions.jsonl. Generated
+    at 2026-04-01T19:59:21.596794Z. Review and validate all clauses before use in
+    production.
+  columns:
+  - name: doc_id
+    tests:
+    - not_null
+    - unique
+    description: Unique identifier for doc. UUIDv4.
+  - name: source_path
+    tests:
+    - not_null
+  - name: source_hash
+    tests:
+    - not_null
+  - name: extraction_model
+    tests:
+    - not_null
+  - name: processing_time_ms
+    tests:
+    - not_null
+    description: Observed range [565.000, 1899.000], mean=1265.200, stddev=391.661.
+  - name: token_count_input
+    tests:
+    - not_null
+    description: Observed range [4000.000, 4000.000], mean=4000.000, stddev=0.000.
+  - name: token_count_output
+    tests:
+    - not_null
+    description: Observed range [800.000, 800.000], mean=800.000, stddev=0.000.
+  - name: extracted_at
+    tests:
+    - not_null
+    description: ISO 8601 timestamp in UTC (Z suffix required).
+  - name: extracted_fact_fact_id
+    tests:
+    - not_null
+    - unique
+    description: Unique identifier for extracted fact fact. UUIDv4.
+  - name: extracted_fact_text
+    tests:
+    - not_null
+    - accepted_values:
+        values:
+        - Sample fact 0
+        - Sample fact 1
+        - Sample fact 2
+    description: 'Enumerated value. Allowed: [''Sample fact 0'', ''Sample fact 1'',
+      ''Sample fact 2''].'
+  - name: extracted_fact_confidence
+    tests:
+    - not_null
+    description: Confidence score. MUST remain in 0.0–1.0 float range. A value of
+      0.87 means 87 % confidence. BREAKING CHANGE if converted to integer 0–100 percentage
+      scale — all downstream threshold comparisons will silently produce wrong results.
+  - name: extracted_fact_page_ref
+    tests:
+    - not_null
+    description: Observed range [1.000, 10.000], mean=5.473, stddev=2.821.
+  - name: extracted_fact_source_excerpt
+    tests:
+    - not_null
