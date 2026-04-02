@@ -1,0 +1,321 @@
+{
+  "analyzed_at": "2026-04-02T13:06:12.382215+00:00",
+  "contracts_analyzed": 6,
+  "total_changes": 27,
+  "total_breaking": 2,
+  "reports": [
+    {
+      "contract_id": "langsmith-traces",
+      "analyzed_at": "2026-04-02T13:06:12.342380+00:00",
+      "compatibility_verdict": "INSUFFICIENT_SNAPSHOTS",
+      "total_changes": 0,
+      "breaking_changes": 0,
+      "compatible_changes": 0,
+      "changes": [],
+      "note": "Only 1 snapshot(s) available. Need >= 2 to detect evolution."
+    },
+    {
+      "contract_id": "week1-intent-records",
+      "analyzed_at": "2026-04-02T13:06:12.344841+00:00",
+      "compatibility_verdict": "INSUFFICIENT_SNAPSHOTS",
+      "total_changes": 0,
+      "breaking_changes": 0,
+      "compatible_changes": 0,
+      "changes": [],
+      "note": "Only 1 snapshot(s) available. Need >= 2 to detect evolution."
+    },
+    {
+      "contract_id": "week2-verdict-records",
+      "analyzed_at": "2026-04-02T13:06:12.347817+00:00",
+      "compatibility_verdict": "INSUFFICIENT_SNAPSHOTS",
+      "total_changes": 0,
+      "breaking_changes": 0,
+      "compatible_changes": 0,
+      "changes": [],
+      "note": "Only 1 snapshot(s) available. Need >= 2 to detect evolution."
+    },
+    {
+      "contract_id": "week3-document-refinery-extractions",
+      "analyzed_at": "2026-04-02T13:06:12.362392+00:00",
+      "old_snapshot": "20260402_125158",
+      "new_snapshot": "20260402_130612",
+      "compatibility_verdict": "BACKWARD_COMPATIBLE",
+      "total_changes": 4,
+      "breaking_changes": 0,
+      "compatible_changes": 4,
+      "changes": [
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'extracted_fact_page_ref'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "extracted_fact_page_ref"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'processing_time_ms'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "processing_time_ms"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'token_count_input'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "token_count_input"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'token_count_output'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "token_count_output"
+        }
+      ],
+      "breaking_details": [],
+      "migration_checklist": [],
+      "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
+      "recommendation": "Safe to deploy \u2014 all changes are backward compatible."
+    },
+    {
+      "contract_id": "week4-lineage-snapshots",
+      "analyzed_at": "2026-04-02T13:06:12.366808+00:00",
+      "compatibility_verdict": "INSUFFICIENT_SNAPSHOTS",
+      "total_changes": 0,
+      "breaking_changes": 0,
+      "compatible_changes": 0,
+      "changes": [],
+      "note": "Only 1 snapshot(s) available. Need >= 2 to detect evolution."
+    },
+    {
+      "contract_id": "week5-event-records",
+      "analyzed_at": "2026-04-02T13:06:12.382127+00:00",
+      "old_snapshot": "20260401_203807",
+      "new_snapshot": "20260402_125159",
+      "compatibility_verdict": "BREAKING",
+      "total_changes": 23,
+      "breaking_changes": 2,
+      "compatible_changes": 21,
+      "changes": [
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'aggregate_id'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "aggregate_id"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'metadata_causation_id'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "metadata_causation_id"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_analysis_type' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_analysis_type"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_applicant_id' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_applicant_id"
+        },
+        {
+          "change_type": "required_field_added",
+          "compatible": false,
+          "description": "New required field 'payload_application_id' added. All producers must populate it.",
+          "required_action": "Coordinate with all producers. Provide default or migration script. Block deploy until all producers updated.",
+          "severity": "BREAKING",
+          "field": "payload_application_id"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_approved_amount_usd' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_approved_amount_usd"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_compliance_status' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_compliance_status"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_credit_score' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_credit_score"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_deadline' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_deadline"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_debt_to_income_ratio' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_debt_to_income_ratio"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_decision' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_decision"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_decision_rationale' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_decision_rationale"
+        },
+        {
+          "change_type": "field_removed",
+          "compatible": false,
+          "description": "Field 'payload_doc_id' removed. All consumers depending on it will break.",
+          "required_action": "Two-sprint deprecation minimum. Each registry subscriber must acknowledge removal.",
+          "severity": "BREAKING",
+          "field": "payload_doc_id"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_interest_rate' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_interest_rate"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_loan_purpose' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_loan_purpose"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_loan_term_months' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_loan_term_months"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_recommendation' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_recommendation"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_requested_amount_usd' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_requested_amount_usd"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_requested_by' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_requested_by"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_rules_evaluated' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_rules_evaluated"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_rules_passed' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_rules_passed"
+        },
+        {
+          "change_type": "optional_field_added",
+          "compatible": true,
+          "description": "New optional field 'payload_submission_channel' added. Consumers can ignore it.",
+          "required_action": "None. Notify downstream subscribers as informational.",
+          "severity": "COMPATIBLE",
+          "field": "payload_submission_channel"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'sequence_number'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "sequence_number"
+        }
+      ],
+      "breaking_details": [
+        {
+          "change_type": "required_field_added",
+          "compatible": false,
+          "description": "New required field 'payload_application_id' added. All producers must populate it.",
+          "required_action": "Coordinate with all producers. Provide default or migration script. Block deploy until all producers updated.",
+          "severity": "BREAKING",
+          "field": "payload_application_id"
+        },
+        {
+          "change_type": "field_removed",
+          "compatible": false,
+          "description": "Field 'payload_doc_id' removed. All consumers depending on it will break.",
+          "required_action": "Two-sprint deprecation minimum. Each registry subscriber must acknowledge removal.",
+          "severity": "BREAKING",
+          "field": "payload_doc_id"
+        }
+      ],
+      "migration_checklist": [
+        "1. Run blast radius query: check contract_registry/subscriptions.yaml for all subscribers",
+        "2. Notify all breaking_fields subscribers via contact email in registry",
+        "3. Create migration branch \u2014 do NOT merge to main until all consumers updated",
+        "4. Fix: Coordinate with all producers. Provide default or migration script. Block deploy until all producers updated.",
+        "5. Fix: Two-sprint deprecation minimum. Each registry subscriber must acknowledge removal.",
+        "6. Re-run ValidationRunner on clean data to re-establish baselines",
+        "7. Update schema_snapshots/ after migration is complete"
+      ],
+      "rollback_plan": "Revert to previous snapshot version by restoring the prior schema_snapshots/week5-event-records/20260401_203807.yaml. Re-run ContractGenerator on the last known good data file. Notify all subscribers of the rollback via registry contacts.",
+      "recommendation": "BLOCK DEPLOY \u2014 2 breaking change(s) detected. Complete migration checklist before merging."
+    }
+  ]
+}

@@ -1,0 +1,405 @@
+{
+  "report_metadata": {
+    "generated_at": "2026-04-02T13:48:54.333372+00:00",
+    "generated_by": "contracts/report_generator.py",
+    "period": "2026-03-26 to 2026-04-02",
+    "auto_generated": true,
+    "note": "This report is machine-generated from live validation data. Do not edit manually."
+  },
+  "data_health_score": 40,
+  "health_narrative": "Score 40/100 \u2014 ATTENTION REQUIRED. 2 critical violation(s) detected. Downstream AI systems may be consuming corrupted data. Immediate action needed.",
+  "violations_by_severity": {
+    "HIGH": 2,
+    "CRITICAL": 2
+  },
+  "total_violations": 4,
+  "total_violations_logged": 4,
+  "top_violations": [
+    "[CRITICAL] The 'codebase_root_required' field in 'week4-lineage-snapshots' failed its column_exists check. Found: column not found in data. Expected: column present. Affecting 60 record(s). Downstream systems at risk: check contract_registry/subscriptions.yaml for affected systems.",
+    "[CRITICAL] The 'extracted_fact_confidence' field in 'week3-document-refinery-extractions' failed its range check. Found: min=50.0000, max=99.0000, mean=75.3067. Expected: min>=0.0, max<=1.0. Affecting 150 record(s). Downstream systems at risk: check contract_registry/subscriptions.yaml for affected systems.",
+    "[HIGH] The 'extracted_fact_page_ref' field in 'week3-document-refinery-extractions' failed its statistical_drift check. Found: current_mean=22.4300, z_score=6.01. Expected: z_score < 2 (baseline_mean=5.4733, stddev=2.8206). Affecting 0 record(s). Downstream systems at risk: check contract_registry/subscriptions.yaml for affected systems."
+  ],
+  "contracts_summary": [
+    {
+      "contract_id": "week5-event-records",
+      "total_checks": 54,
+      "passed": 54,
+      "failed": 0,
+      "warned": 0,
+      "errored": 0
+    },
+    {
+      "contract_id": "week2-verdict-records",
+      "total_checks": 21,
+      "passed": 21,
+      "failed": 0,
+      "warned": 0,
+      "errored": 0
+    },
+    {
+      "contract_id": "week1-intent-records",
+      "total_checks": 19,
+      "passed": 19,
+      "failed": 0,
+      "warned": 0,
+      "errored": 0
+    },
+    {
+      "contract_id": "langsmith-traces",
+      "total_checks": 48,
+      "passed": 48,
+      "failed": 0,
+      "warned": 0,
+      "errored": 0
+    },
+    {
+      "contract_id": "week3-document-refinery-extractions",
+      "total_checks": 33,
+      "passed": 32,
+      "failed": 1,
+      "warned": 0,
+      "errored": 0
+    },
+    {
+      "contract_id": "week4-lineage-snapshots",
+      "total_checks": 18,
+      "passed": 17,
+      "failed": 0,
+      "warned": 0,
+      "errored": 1
+    },
+    {
+      "contract_id": "week3-document-refinery-extractions",
+      "total_checks": 33,
+      "passed": 31,
+      "failed": 2,
+      "warned": 0,
+      "errored": 0
+    }
+  ],
+  "schema_changes_detected": [
+    {
+      "contract_id": "week3-document-refinery-extractions",
+      "compatibility": "BACKWARD_COMPATIBLE",
+      "total_changes": 4,
+      "breaking_changes": 0,
+      "action_required": "No action required.",
+      "plain_summary": "Contract 'week3-document-refinery-extractions': 4 schema change(s) detected (0 breaking). Verdict: BACKWARD_COMPATIBLE. No action required."
+    },
+    {
+      "contract_id": "week5-event-records",
+      "compatibility": "BREAKING",
+      "total_changes": 23,
+      "breaking_changes": 2,
+      "action_required": "BLOCK DEPLOY until migration checklist complete. See validation_reports/schema_evolution_all.json for details.",
+      "plain_summary": "Contract 'week5-event-records': 23 schema change(s) detected (2 breaking). Verdict: BREAKING. BLOCK DEPLOY until migration checklist complete. See validation_reports/schema_evolution_all.json for details."
+    }
+  ],
+  "total_breaking_changes": 2,
+  "ai_risk_assessment": {
+    "overall_status": "PASS",
+    "embedding_drift": {
+      "score": 0.0,
+      "status": "BASELINE_SET"
+    },
+    "output_violation_rate": {
+      "rate": 0.0,
+      "trend": "stable"
+    },
+    "trace_schema": {
+      "status": "PASS"
+    },
+    "narrative": "Embedding drift baseline established on current data. First drift measurement will be available on the next run. LLM output schema violation rate is 0.0% \u2014 all verdict records conform to expected PASS/FAIL/WARN enum. LangSmith trace schema check passed: 210 traces validated, all required fields present and timestamps valid."
+  },
+  "recommended_actions": [
+    "URGENT: Fix CRITICAL violation in week4-lineage-snapshots. Field 'codebase_root_required' has value column not found in data but contract requires column present. Source: outputs/week4/lineage_snapshots.jsonl (produced by brownfield-cartographer). Run: python contracts/runner.py --contract generated_contracts/week4-lineage-snapshots.yaml --data outputs/ --mode ENFORCE after fix.",
+    "Add contracts/runner.py as a required CI step before any data pipeline deployment. Insert: 'python contracts/runner.py --contract generated_contracts/<contract>.yaml --data outputs/<week>/ --mode ENFORCE --output validation_reports/ci_check.json' into your GitHub Actions workflow. This prevents violations from reaching production.",
+    "Embedding drift baseline has been established. Run 'python contracts/ai_extensions.py --extractions outputs/week3/extractions.jsonl --verdicts outputs/week2/verdicts.jsonl --output validation_reports/ai_extensions.json' again on next data batch to detect any semantic drift from this baseline."
+  ],
+  "raw": {
+    "all_failures": [
+      {
+        "check_id": "week3-document-refinery-extractions.extracted_fact_page_ref.statistical_drift",
+        "column_name": "extracted_fact_page_ref",
+        "check_type": "statistical_drift",
+        "status": "FAIL",
+        "actual_value": "current_mean=22.4300, z_score=6.01",
+        "expected": "z_score < 2 (baseline_mean=5.4733, stddev=2.8206)",
+        "severity": "HIGH",
+        "records_failing": 0,
+        "sample_failing": [],
+        "message": "'extracted_fact_page_ref' statistical drift: 6.0 stddev drift. Was 5.4733, now 22.4300. Possible scale change!",
+        "contract_id": "week3-document-refinery-extractions",
+        "report_file": "adb2a73a-cf0f-4a20-92f4-36912ad5465c"
+      },
+      {
+        "check_id": "week4-lineage-snapshots.codebase_root_required.exists",
+        "column_name": "codebase_root_required",
+        "check_type": "column_exists",
+        "status": "ERROR",
+        "actual_value": "column not found in data",
+        "expected": "column present",
+        "severity": "CRITICAL",
+        "records_failing": 60,
+        "sample_failing": [],
+        "message": "Column 'codebase_root_required' defined in contract but not found in data. Available: ['snapshot_id', 'codebase_root', 'git_commit', 'captured_at', 'node_node_id']",
+        "contract_id": "week4-lineage-snapshots",
+        "report_file": "09032c04-2522-4306-bb5f-4baae6f143aa"
+      },
+      {
+        "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.range",
+        "column_name": "extracted_fact_confidence",
+        "check_type": "range",
+        "status": "FAIL",
+        "actual_value": "min=50.0000, max=99.0000, mean=75.3067",
+        "expected": "min>=0.0, max<=1.0",
+        "severity": "CRITICAL",
+        "records_failing": 150,
+        "sample_failing": [],
+        "message": "'extracted_fact_confidence' range violation: max=99.0000 > 1.0. Likely cause: scale changed from 0.0-1.0 to 0-100.",
+        "contract_id": "week3-document-refinery-extractions",
+        "report_file": "d6fb4b0a-b70c-44e0-afef-b832fde3e924"
+      },
+      {
+        "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.statistical_drift",
+        "column_name": "extracted_fact_confidence",
+        "check_type": "statistical_drift",
+        "status": "FAIL",
+        "actual_value": "current_mean=75.3067, z_score=550.32",
+        "expected": "z_score < 2 (baseline_mean=0.7531, stddev=0.1355)",
+        "severity": "HIGH",
+        "records_failing": 0,
+        "sample_failing": [],
+        "message": "'extracted_fact_confidence' statistical drift: 550.3 stddev drift. Was 0.7531, now 75.3067. Possible scale change!",
+        "contract_id": "week3-document-refinery-extractions",
+        "report_file": "d6fb4b0a-b70c-44e0-afef-b832fde3e924"
+      }
+    ],
+    "violation_log": [
+      {
+        "injection_note": true,
+        "injected_at": "2026-04-02T13:47:19.003847+00:00",
+        "injection_type": "scale_change",
+        "description": "Confidence field multiplied by 100 (0.87 -> 87.0) to simulate 0-100 scale change violation",
+        "script": "create_violation.py",
+        "affects_contract": "week3-document-refinery-extractions",
+        "affects_field": "extracted_facts.confidence"
+      },
+      {
+        "violation_id": "26409117-f3ff-4795-8ebd-14219872f8ef",
+        "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.range",
+        "contract_id": "week3-document-refinery-extractions",
+        "column_name": "extracted_fact_confidence",
+        "severity": "CRITICAL",
+        "detected_at": "2026-04-02T13:47:02.593448+00:00",
+        "actual_value": "min=50.0000, max=99.0000, mean=75.3067",
+        "expected": "min>=0.0, max<=1.0",
+        "records_failing": 150,
+        "blast_radius": {
+          "source": "registry",
+          "note": "direct_subscribers from registry; transitive_nodes from lineage graph enrichment",
+          "direct_subscribers": [
+            {
+              "subscriber_id": "week4-cartographer",
+              "subscriber_team": "week4",
+              "contact": "meseret@data-contract-enforcer",
+              "validation_mode": "ENFORCE",
+              "breaking_reason": "used for node ranking; scale change (0.0-1.0 vs 0-100) breaks ordering logic silently",
+              "fields_consumed": [
+                "doc_id",
+                "extracted_facts",
+                "extraction_model"
+              ]
+            },
+            {
+              "subscriber_id": "week7-contract-enforcer",
+              "subscriber_team": "week7",
+              "contact": "meseret@data-contract-enforcer",
+              "validation_mode": "AUDIT",
+              "breaking_reason": "AI extension embedding drift baseline depends on 0.0-1.0 scale",
+              "fields_consumed": [
+                "extracted_facts.confidence",
+                "doc_id",
+                "extracted_at"
+              ]
+            }
+          ],
+          "lineage_direct_nodes": [
+            "table::extractions"
+          ],
+          "lineage_transitive_nodes": [
+            "file::src/week4/cartographer.py",
+            "file::src/week7/contract_enforcer.py",
+            "table::lineage_snapshots"
+          ],
+          "contamination_depth": 3,
+          "total_affected_systems": 5
+        },
+        "blame_chain": [
+          {
+            "commit_hash": "39e4fe9d6654dddbbc4b411261bcfe91ee7adf2b",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 23:39:26 +0300",
+            "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
+            "rank": 1,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "31edeea38952a559822888dd47bedf67efc49946",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 23:27:47 +0300",
+            "commit_message": "feat: all Thursday interim deliverables complete - contracts generated, violations caught",
+            "rank": 2,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "da0f6f2825dd4b72f3b99aa34c6b9be633e8c140",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 22:49:38 +0300",
+            "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
+            "rank": 3,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          }
+        ],
+        "source_report": "validation_reports/week3_violated.json"
+      },
+      {
+        "violation_id": "673b3bd7-d15d-466e-8524-45f93464f38e",
+        "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.statistical_drift",
+        "contract_id": "week3-document-refinery-extractions",
+        "column_name": "extracted_fact_confidence",
+        "severity": "HIGH",
+        "detected_at": "2026-04-02T13:47:02.626851+00:00",
+        "actual_value": "current_mean=75.3067, z_score=550.32",
+        "expected": "z_score < 2 (baseline_mean=0.7531, stddev=0.1355)",
+        "records_failing": 0,
+        "blast_radius": {
+          "source": "registry",
+          "note": "direct_subscribers from registry; transitive_nodes from lineage graph enrichment",
+          "direct_subscribers": [
+            {
+              "subscriber_id": "week4-cartographer",
+              "subscriber_team": "week4",
+              "contact": "meseret@data-contract-enforcer",
+              "validation_mode": "ENFORCE",
+              "breaking_reason": "used for node ranking; scale change (0.0-1.0 vs 0-100) breaks ordering logic silently",
+              "fields_consumed": [
+                "doc_id",
+                "extracted_facts",
+                "extraction_model"
+              ]
+            },
+            {
+              "subscriber_id": "week7-contract-enforcer",
+              "subscriber_team": "week7",
+              "contact": "meseret@data-contract-enforcer",
+              "validation_mode": "AUDIT",
+              "breaking_reason": "AI extension embedding drift baseline depends on 0.0-1.0 scale",
+              "fields_consumed": [
+                "extracted_facts.confidence",
+                "doc_id",
+                "extracted_at"
+              ]
+            }
+          ],
+          "lineage_direct_nodes": [
+            "table::extractions"
+          ],
+          "lineage_transitive_nodes": [
+            "file::src/week4/cartographer.py",
+            "file::src/week7/contract_enforcer.py",
+            "table::lineage_snapshots"
+          ],
+          "contamination_depth": 3,
+          "total_affected_systems": 5
+        },
+        "blame_chain": [
+          {
+            "commit_hash": "39e4fe9d6654dddbbc4b411261bcfe91ee7adf2b",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 23:39:26 +0300",
+            "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
+            "rank": 1,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "31edeea38952a559822888dd47bedf67efc49946",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 23:27:47 +0300",
+            "commit_message": "feat: all Thursday interim deliverables complete - contracts generated, violations caught",
+            "rank": 2,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "da0f6f2825dd4b72f3b99aa34c6b9be633e8c140",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 22:49:38 +0300",
+            "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
+            "rank": 3,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          }
+        ],
+        "source_report": "validation_reports/week3_violated.json"
+      },
+      {
+        "violation_id": "d1b9988c-d375-4485-8f9b-e82cef03f050",
+        "check_id": "week4-lineage-snapshots.codebase_root_required.exists",
+        "contract_id": "week4-lineage-snapshots",
+        "column_name": "codebase_root_required",
+        "severity": "CRITICAL",
+        "detected_at": "2026-04-02T13:48:46.978759+00:00",
+        "actual_value": "column not found in data",
+        "expected": "column present",
+        "records_failing": 60,
+        "blast_radius": {
+          "source": "registry",
+          "note": "direct_subscribers from registry; transitive_nodes from lineage graph enrichment",
+          "direct_subscribers": [],
+          "lineage_direct_nodes": [
+            "table::lineage_snapshots"
+          ],
+          "lineage_transitive_nodes": [],
+          "contamination_depth": 1,
+          "total_affected_systems": 0
+        },
+        "blame_chain": [
+          {
+            "commit_hash": "39e4fe9d6654dddbbc4b411261bcfe91ee7adf2b",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 23:39:26 +0300",
+            "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
+            "rank": 1,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "da0f6f2825dd4b72f3b99aa34c6b9be633e8c140",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 22:49:38 +0300",
+            "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
+            "rank": 2,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          }
+        ],
+        "source_report": "validation_reports/week4_clean.json"
+      }
+    ],
+    "registry_subscriptions": 7,
+    "contracts_monitored": 7
+  }
+}

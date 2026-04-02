@@ -1,24 +1,3 @@
-"""
-contracts/runner.py — ValidationRunner
-=======================================
-Executes every clause in a contract YAML against a JSONL data snapshot
-and produces a structured JSON validation report.
-
-Usage
------
-# Clean run (establishes baselines):
-python contracts/runner.py \
-    --contract generated_contracts/week3-document-refinery-extractions.yaml \
-    --data    outputs/week3/extractions.jsonl \
-    --output  validation_reports/week3_clean.json
-
-# Violated run (detects injected violation):
-python contracts/runner.py \
-    --contract generated_contracts/week3-document-refinery-extractions.yaml \
-    --data    outputs/week3/extractions_violated.jsonl \
-    --output  validation_reports/week3_violated.json
-"""
-
 import argparse
 import hashlib
 import json

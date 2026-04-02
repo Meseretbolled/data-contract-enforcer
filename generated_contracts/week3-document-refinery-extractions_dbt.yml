@@ -1,9 +1,9 @@
 version: 2
 models:
 - name: week3_document_refinery_extractions
-  description: Auto-generated contract for outputs/week3/extractions.jsonl. Generated
-    at 2026-04-01T20:37:40.305966+00:00. Review and validate all clauses before use
-    in production.
+  description: Auto-generated contract for outputs/week3/extractions_violated.jsonl.
+    Generated at 2026-04-02T13:06:12.085213+00:00. Review and validate all clauses
+    before use in production.
   columns:
   - name: doc_id
     tests:

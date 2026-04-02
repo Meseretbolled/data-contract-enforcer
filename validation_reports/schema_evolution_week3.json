@@ -1,0 +1,56 @@
+{
+  "analyzed_at": "2026-04-02T13:06:12.275831+00:00",
+  "contracts_analyzed": 1,
+  "total_changes": 4,
+  "total_breaking": 0,
+  "reports": [
+    {
+      "contract_id": "week3-document-refinery-extractions",
+      "analyzed_at": "2026-04-02T13:06:12.275776+00:00",
+      "old_snapshot": "20260402_125158",
+      "new_snapshot": "20260402_130612",
+      "compatibility_verdict": "BACKWARD_COMPATIBLE",
+      "total_changes": 4,
+      "breaking_changes": 0,
+      "compatible_changes": 4,
+      "changes": [
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'extracted_fact_page_ref'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "extracted_fact_page_ref"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'processing_time_ms'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "processing_time_ms"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'token_count_input'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "token_count_input"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'token_count_output'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "token_count_output"
+        }
+      ],
+      "breaking_details": [],
+      "migration_checklist": [],
+      "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
+      "recommendation": "Safe to deploy \u2014 all changes are backward compatible."
+    }
+  ]
+}

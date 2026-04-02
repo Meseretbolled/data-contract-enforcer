@@ -1,0 +1,331 @@
+kind: DataContract
+apiVersion: v3.0.0
+id: langsmith-traces
+info:
+  title: Contract — langsmith-traces
+  version: 1.0.0
+  owner: data-engineering-team
+  description: Auto-generated contract for outputs/traces/runs.jsonl. Generated at
+    2026-04-02T12:52:00.141505+00:00. Review and validate all clauses before use in
+    production.
+servers:
+  local:
+    type: local
+    path: outputs/traces/runs.jsonl
+    format: jsonl
+terms:
+  usage: Internal inter-system data contract. Do not publish externally.
+  limitations: confidence fields MUST remain in 0.0-1.0 float range.
+schema:
+  id:
+    type: string
+    required: true
+  name:
+    type: string
+    required: true
+  run_type:
+    type: string
+    required: true
+  inputs_applicant_id:
+    type: string
+    required: false
+    enum:
+    - COMP-001
+    - COMP-007
+    description: 'Enumerated value. Allowed: [''COMP-001'', ''COMP-007''].'
+  inputs_loan_purpose:
+    type: string
+    required: false
+    enum:
+    - equipment_purchase
+    - working_capital
+    description: 'Enumerated value. Allowed: [''equipment_purchase'', ''working_capital''].'
+  inputs_requested_amount_usd:
+    type: number
+    required: false
+    description: Observed range [500000.000, 750000.000], mean=528846.154, stddev=80128.619.
+  error:
+    type: string
+    required: false
+    enum:
+    - "AttributeError(\"'CreditAnalysisAgent' object has no attribute '_record_input_validated'\"\
+      )Traceback (most recent call last):\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 705, in ainvoke\n    input = await asyncio.create_task(\n           \
+      \ ^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 473, in ainvoke\n    ret = await self.afunc(*args, **kwargs)\n      \
+      \    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/agents/credit_analysis_agent.py\"\
+      , line 147, in _node_validate_inputs\n    await self._record_input_validated(\n\
+      \          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\nAttributeError: 'CreditAnalysisAgent'\
+      \ object has no attribute '_record_input_validated'"
+    - "InterfaceError('cannot perform operation: another operation is in progress')Traceback\
+      \ (most recent call last):\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/event_store.py\"\
+      , line 417, in append\n    async with conn.transaction():\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/transaction.py\"\
+      , line 68, in __aenter__\n    await self.start()\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/transaction.py\"\
+      , line 146, in start\n    await self._connection.execute(query)\n\n\n  File\
+      \ \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/connection.py\"\
+      , line 350, in execute\n    result = await self._protocol.query(query, timeout)\n\
+      \             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"asyncpg/protocol/protocol.pyx\"\
+      , line 374, in query\n\n\nRuntimeError: Task <Task pending name='Task-332' coro=<RunnableCallable.ainvoke()\
+      \ running at /home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py:473>\
+      \ cb=[Task.task_wakeup()]> got Future <Future pending cb=[Protocol._on_waiter_completed()]>\
+      \ attached to a different loop\n\n\n\nDuring handling of the above exception,\
+      \ another exception occurred:\n\n\n\nTraceback (most recent call last):\n\n\n\
+      \  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 705, in ainvoke\n    input = await asyncio.create_task(\n           \
+      \ ^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 473, in ainvoke\n    ret = await self.afunc(*args, **kwargs)\n      \
+      \    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/agents/credit_analysis_agent.py\"\
+      , line 171, in _node_open_credit_record\n    await self.store.append(credit_stream,\
+      \ [event], expected_version=-1)\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/event_store.py\"\
+      , line 416, in append\n    async with self._pool.acquire() as conn:\n\n\n  File\
+      \ \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/pool.py\"\
+      , line 988, in __aexit__\n    await self.pool.release(con)\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/pool.py\"\
+      , line 862, in release\n    return await asyncio.shield(ch.release(timeout))\n\
+      \           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/pool.py\"\
+      , line 219, in release\n    raise ex\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/pool.py\"\
+      , line 209, in release\n    await self._con.reset(timeout=budget)\n\n\n  File\
+      \ \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/connection.py\"\
+      , line 1500, in reset\n    await self.execute(reset_query, timeout=timeout)\n\
+      \n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/connection.py\"\
+      , line 350, in execute\n    result = await self._protocol.query(query, timeout)\n\
+      \             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"asyncpg/protocol/protocol.pyx\"\
+      , line 359, in query\n\n\n  File \"asyncpg/protocol/protocol.pyx\", line 744,\
+      \ in asyncpg.protocol.protocol.BaseProtocol._check_state\n\n\nasyncpg.exceptions._base.InterfaceError:\
+      \ cannot perform operation: another operation is in progress"
+    - "KeyError('application_id')Traceback (most recent call last):\n\n\n  File \"\
+      /home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 839, in astream\n    output = await asyncio.create_task(\n          \
+      \   ^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 904, in _consume_aiter\n    async for chunk in it:\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/tracers/event_stream.py\"\
+      , line 199, in tap_output_aiter\n    first = await anext(output, sentinel)\n\
+      \            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py\"\
+      , line 1589, in atransform\n    async for ichunk in input:\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py\"\
+      , line 1170, in astream\n    yield await self.ainvoke(input, config, **kwargs)\n\
+      \          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 473, in ainvoke\n    ret = await self.afunc(*args, **kwargs)\n      \
+      \    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/agents/base_agent.py\"\
+      , line 218, in _node_load_facts\n    await self._record_tool_call(\"load_event_store_stream\"\
+      , f\"docpkg-{state['application_id']}\", \"ExtractionCompleted events loaded\"\
+      , ms)\n                                                                    \
+      \  ~~~~~^^^^^^^^^^^^^^^^^^\n\n\nKeyError: 'application_id'"
+    - "KeyError('application_id')Traceback (most recent call last):\n\n\n  File \"\
+      /home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 839, in astream\n    output = await asyncio.create_task(\n          \
+      \   ^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 904, in _consume_aiter\n    async for chunk in it:\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/tracers/event_stream.py\"\
+      , line 199, in tap_output_aiter\n    first = await anext(output, sentinel)\n\
+      \            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py\"\
+      , line 1589, in atransform\n    async for ichunk in input:\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py\"\
+      , line 1170, in astream\n    yield await self.ainvoke(input, config, **kwargs)\n\
+      \          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 473, in ainvoke\n    ret = await self.afunc(*args, **kwargs)\n      \
+      \    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/agents/base_agent.py\"\
+      , line 224, in _node_load_facts\n    await self._record_tool_call(\"load_event_store_stream\"\
+      , f\"docpkg-{state['application_id']}\", \"ExtractionCompleted events loaded\"\
+      , ms)\n                                                                    \
+      \  ~~~~~^^^^^^^^^^^^^^^^^^\n\n\nKeyError: 'application_id'"
+    - "KeyError('application_id')Traceback (most recent call last):\n\n\n  File \"\
+      /home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 839, in astream\n    output = await asyncio.create_task(\n          \
+      \   ^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 904, in _consume_aiter\n    async for chunk in it:\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/tracers/event_stream.py\"\
+      , line 199, in tap_output_aiter\n    first = await anext(output, sentinel)\n\
+      \            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py\"\
+      , line 1589, in atransform\n    async for ichunk in input:\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py\"\
+      , line 1170, in astream\n    yield await self.ainvoke(input, config, **kwargs)\n\
+      \          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py\"\
+      , line 473, in ainvoke\n    ret = await self.afunc(*args, **kwargs)\n      \
+      \    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File \"/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/agents/base_agent.py\"\
+      , line 234, in _node_load_facts\n    await self._record_tool_call(\"load_event_store_stream\"\
+      , f\"docpkg-{state['application_id']}\", \"ExtractionCompleted events loaded\"\
+      , ms)\n                                                                    \
+      \  ~~~~~^^^^^^^^^^^^^^^^^^\n\n\nKeyError: 'application_id'"
+    description: 'Enumerated value. Allowed: [''AttributeError("\''CreditAnalysisAgent\''
+      object has no attribute \''_record_input_validated\''")Traceback (most recent
+      call last):\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 705, in ainvoke\n    input = await asyncio.create_task(\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 473, in ainvoke\n    ret = await self.afunc(*args, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/agents/credit_analysis_agent.py",
+      line 147, in _node_validate_inputs\n    await self._record_input_validated(\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\nAttributeError:
+      \''CreditAnalysisAgent\'' object has no attribute \''_record_input_validated\'''',
+      ''InterfaceError(\''cannot perform operation: another operation is in progress\'')Traceback
+      (most recent call last):\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/event_store.py",
+      line 417, in append\n    async with conn.transaction():\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/transaction.py",
+      line 68, in __aenter__\n    await self.start()\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/transaction.py",
+      line 146, in start\n    await self._connection.execute(query)\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/connection.py",
+      line 350, in execute\n    result = await self._protocol.query(query, timeout)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "asyncpg/protocol/protocol.pyx", line 374, in query\n\n\nRuntimeError: Task
+      <Task pending name=\''Task-332\'' coro=<RunnableCallable.ainvoke() running at
+      /home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py:473>
+      cb=[Task.task_wakeup()]> got Future <Future pending cb=[Protocol._on_waiter_completed()]>
+      attached to a different loop\n\n\n\nDuring handling of the above exception,
+      another exception occurred:\n\n\n\nTraceback (most recent call last):\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 705, in ainvoke\n    input = await asyncio.create_task(\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 473, in ainvoke\n    ret = await self.afunc(*args, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/agents/credit_analysis_agent.py",
+      line 171, in _node_open_credit_record\n    await self.store.append(credit_stream,
+      [event], expected_version=-1)\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/event_store.py",
+      line 416, in append\n    async with self._pool.acquire() as conn:\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/pool.py",
+      line 988, in __aexit__\n    await self.pool.release(con)\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/pool.py",
+      line 862, in release\n    return await asyncio.shield(ch.release(timeout))\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/pool.py",
+      line 219, in release\n    raise ex\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/pool.py",
+      line 209, in release\n    await self._con.reset(timeout=budget)\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/connection.py",
+      line 1500, in reset\n    await self.execute(reset_query, timeout=timeout)\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/asyncpg/connection.py",
+      line 350, in execute\n    result = await self._protocol.query(query, timeout)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "asyncpg/protocol/protocol.pyx", line 359, in query\n\n\n  File "asyncpg/protocol/protocol.pyx",
+      line 744, in asyncpg.protocol.protocol.BaseProtocol._check_state\n\n\nasyncpg.exceptions._base.InterfaceError:
+      cannot perform operation: another operation is in progress'', ''KeyError(\''application_id\'')Traceback
+      (most recent call last):\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 839, in astream\n    output = await asyncio.create_task(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 904, in _consume_aiter\n    async for chunk in it:\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/tracers/event_stream.py",
+      line 199, in tap_output_aiter\n    first = await anext(output, sentinel)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py",
+      line 1589, in atransform\n    async for ichunk in input:\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py",
+      line 1170, in astream\n    yield await self.ainvoke(input, config, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 473, in ainvoke\n    ret = await self.afunc(*args, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/agents/base_agent.py",
+      line 218, in _node_load_facts\n    await self._record_tool_call("load_event_store_stream",
+      f"docpkg-{state[\''application_id\'']}", "ExtractionCompleted events loaded",
+      ms)\n                                                                      ~~~~~^^^^^^^^^^^^^^^^^^\n\n\nKeyError:
+      \''application_id\'''', ''KeyError(\''application_id\'')Traceback (most recent
+      call last):\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 839, in astream\n    output = await asyncio.create_task(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 904, in _consume_aiter\n    async for chunk in it:\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/tracers/event_stream.py",
+      line 199, in tap_output_aiter\n    first = await anext(output, sentinel)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py",
+      line 1589, in atransform\n    async for ichunk in input:\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py",
+      line 1170, in astream\n    yield await self.ainvoke(input, config, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 473, in ainvoke\n    ret = await self.afunc(*args, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/agents/base_agent.py",
+      line 224, in _node_load_facts\n    await self._record_tool_call("load_event_store_stream",
+      f"docpkg-{state[\''application_id\'']}", "ExtractionCompleted events loaded",
+      ms)\n                                                                      ~~~~~^^^^^^^^^^^^^^^^^^\n\n\nKeyError:
+      \''application_id\'''', ''KeyError(\''application_id\'')Traceback (most recent
+      call last):\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 839, in astream\n    output = await asyncio.create_task(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 904, in _consume_aiter\n    async for chunk in it:\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/tracers/event_stream.py",
+      line 199, in tap_output_aiter\n    first = await anext(output, sentinel)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py",
+      line 1589, in atransform\n    async for ichunk in input:\n\n\n  File "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langchain_core/runnables/base.py",
+      line 1170, in astream\n    yield await self.ainvoke(input, config, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py",
+      line 473, in ainvoke\n    ret = await self.afunc(*args, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n\n  File
+      "/home/meseret/Documents/TRP1/week-5/apex-ledger/ledger/agents/base_agent.py",
+      line 234, in _node_load_facts\n    await self._record_tool_call("load_event_store_stream",
+      f"docpkg-{state[\''application_id\'']}", "ExtractionCompleted events loaded",
+      ms)\n                                                                      ~~~~~^^^^^^^^^^^^^^^^^^\n\n\nKeyError:
+      \''application_id\''''].'
+  start_time:
+    type: string
+    required: true
+  end_time:
+    type: string
+    required: true
+  total_tokens:
+    type: integer
+    required: true
+    description: Observed range [0.000, 0.000], mean=0.000, stddev=0.000.
+  prompt_tokens:
+    type: integer
+    required: true
+    description: Observed range [0.000, 0.000], mean=0.000, stddev=0.000.
+  completion_tokens:
+    type: integer
+    required: true
+    description: Observed range [0.000, 0.000], mean=0.000, stddev=0.000.
+  total_cost:
+    type: string
+    required: false
+  parent_run_id:
+    type: string
+    required: true
+    format: uuid
+    description: Unique identifier for parent run. UUIDv4.
+  session_id:
+    type: string
+    required: true
+    format: uuid
+    description: Unique identifier for session. UUIDv4.
+  outputs_applicant_id:
+    type: string
+    required: false
+  outputs_loan_purpose:
+    type: string
+    required: false
+  outputs_requested_amount_usd:
+    type: number
+    required: false
+    description: Observed range [500000.000, 500000.000], mean=500000.000, stddev=0.000.
+  inputs_agent_id:
+    type: string
+    required: false
+  inputs_application_id:
+    type: string
+    required: false
+    enum:
+    - APEX-0007
+    - APEX-0010
+    - APEX-0015
+    description: 'Enumerated value. Allowed: [''APEX-0007'', ''APEX-0010'', ''APEX-0015''].'
+  inputs_next_agent_triggered:
+    type: string
+    required: false
+  inputs_session_id:
+    type: string
+    required: false
+    enum:
+    - sess-demo-001
+    - sess-demo-002
+    description: 'Enumerated value. Allowed: [''sess-demo-001'', ''sess-demo-002''].'
+  outputs_agent_id:
+    type: string
+    required: false
+  outputs_application_id:
+    type: string
+    required: false
+    enum:
+    - APEX-0007
+    - APEX-0010
+    - APEX-0015
+    description: 'Enumerated value. Allowed: [''APEX-0007'', ''APEX-0010'', ''APEX-0015''].'
+  outputs_next_agent_triggered:
+    type: string
+    required: false
+    enum:
+    - fraud_detection
+    - 'null'
+    description: 'Enumerated value. Allowed: [''fraud_detection'', ''null''].'
+  outputs_session_id:
+    type: string
+    required: false
+    enum:
+    - sess-demo-001
+    - sess-demo-002
+    description: 'Enumerated value. Allowed: [''sess-demo-001'', ''sess-demo-002''].'
+  inputs_credit_decision:
+    type: number
+    required: false
+  outputs_credit_decision:
+    type: number
+    required: false
+quality:
+  type: SodaChecks
+  specification:
+    checks for langsmith-traces:
+    - row_count >= 1
+    - row_count >= 1
+lineage:
+  upstream: []
+  downstream: []

@@ -1,0 +1,51 @@
+{
+  "run_id": "570a71b1-9a6a-4574-8af2-2e8cc18bb4e7",
+  "run_at": "2026-04-02T13:31:18.019711+00:00",
+  "extensions": {
+    "embedding_drift": {
+      "status": "BASELINE_SET",
+      "drift_score": 0.0,
+      "threshold": 0.15,
+      "sample_size": 100,
+      "message": "Baseline established from current data. Run again to detect drift.",
+      "interpretation": "First run \u2014 baseline saved."
+    },
+    "prompt_input_validation_week3": {
+      "status": "PASS",
+      "total_records": 50,
+      "valid": 50,
+      "quarantined": 0,
+      "quarantine_rate": 0.0,
+      "quarantine_path": null,
+      "interpretation": "\u2705 All records passed prompt input validation."
+    },
+    "prompt_input_validation_week2": {
+      "status": "PASS",
+      "total_records": 50,
+      "valid": 50,
+      "quarantined": 0,
+      "quarantine_rate": 0.0,
+      "quarantine_path": null,
+      "interpretation": "\u2705 All records passed prompt input validation."
+    },
+    "output_violation_rate_verdicts": {
+      "status": "PASS",
+      "total_outputs": 50,
+      "schema_violations": 0,
+      "violation_rate": 0.0,
+      "baseline_rate": 0.0,
+      "trend": "stable",
+      "warn_threshold": 0.02,
+      "interpretation": "\u2705 Output schema violation rate 0.0% is within acceptable bounds."
+    },
+    "trace_schema_check": {
+      "status": "PASS",
+      "total_traces": 210,
+      "violations": 0,
+      "violation_rate": 0.0,
+      "sample_violations": [],
+      "interpretation": "\u2705 210 traces checked \u2014 0 schema violations (0.0%)."
+    }
+  },
+  "overall_status": "PASS"
+}

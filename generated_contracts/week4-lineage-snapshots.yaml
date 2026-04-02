@@ -1,0 +1,86 @@
+kind: DataContract
+apiVersion: v3.0.0
+id: week4-lineage-snapshots
+info:
+  title: Contract — week4-lineage-snapshots
+  version: 1.0.0
+  owner: data-engineering-team
+  description: Auto-generated contract for outputs/week4/lineage_snapshots.jsonl.
+    Each record is a full codebase lineage snapshot with nodes and edges.
+servers:
+  local:
+    type: local
+    path: outputs/week4/lineage_snapshots.jsonl
+    format: jsonl
+terms:
+  usage: Internal inter-system data contract. Do not publish externally.
+  limitations: git_commit must be exactly 40 hex characters.
+schema:
+  snapshot_id:
+    type: string
+    required: true
+    format: uuid
+    description: Unique identifier for this snapshot. UUIDv4.
+  codebase_root:
+    type: string
+    required: true
+    description: Absolute path to the root of the analysed codebase.
+  git_commit:
+    type: string
+    required: true
+    pattern: "^[a-f0-9]{40}$"
+    description: 40-character hex SHA of the git commit at snapshot time. BREAKING if shortened or changed to branch name.
+  captured_at:
+    type: string
+    required: true
+    format: date-time
+    description: ISO 8601 timestamp in UTC when the snapshot was captured.
+  node_node_id:
+    type: string
+    required: true
+    description: Stable node identifier in format type::path (e.g. file::src/main.py).
+  node_type:
+    type: string
+    required: true
+    enum:
+    - FILE
+    - TABLE
+    - SERVICE
+    - MODEL
+    - PIPELINE
+    - EXTERNAL
+    description: Node type enum. BREAKING if existing values removed.
+  node_label:
+    type: string
+    required: true
+    description: Human-readable label for the node, typically the filename.
+  codebase_root_required:
+    type: string
+    required: false
+    description: Edge relationship type must be one of IMPORTS/CALLS/READS/WRITES/PRODUCES/CONSUMES. Validated by ViolationAttributor traversal.
+quality:
+  type: SodaChecks
+  specification:
+    checks for week4-lineage-snapshots:
+    - row_count >= 1
+    - missing_count(snapshot_id) = 0
+    - missing_count(git_commit) = 0
+lineage:
+  upstream: []
+  downstream:
+  - id: file::src/week7/contract_enforcer.py
+    description: ViolationAttributor reads lineage graph for blast radius computation
+    fields_consumed:
+    - snapshot_id
+    - node_node_id
+    - git_commit
+    breaking_if_changed:
+    - git_commit
+    - node_node_id
+  - id: file::contracts/attributor.py
+    description: Attributor traverses edges to find upstream blame chain
+    fields_consumed:
+    - snapshot_id
+    - node_node_id
+    breaking_if_changed:
+    - node_node_id

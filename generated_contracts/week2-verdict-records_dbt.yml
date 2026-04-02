@@ -1,0 +1,55 @@
+version: 2
+models:
+- name: week2_verdict_records
+  description: Auto-generated contract for outputs/week2/verdicts.jsonl. Generated
+    at 2026-04-02T12:51:58.202437+00:00. Review and validate all clauses before use
+    in production.
+  columns:
+  - name: verdict_id
+    tests:
+    - not_null
+    - unique
+    description: Unique identifier for verdict. UUIDv4.
+  - name: target_ref
+    tests:
+    - not_null
+    - accepted_values:
+        values:
+        - https://github.com/Meseretbolled/apex-ledger
+        - https://github.com/Meseretbolled/automaton-auditor
+        - https://github.com/Meseretbolled/brownfield-cartographer
+        - https://github.com/Meseretbolled/document-intelligence-refinery
+    description: 'Enumerated value. Allowed: [''https://github.com/Meseretbolled/apex-ledger'',
+      ''https://github.com/Meseretbolled/automaton-auditor'', ''https://github.com/Meseretbolled/brownfield-cartographer'',
+      ''https://github.com/Meseretbolled/document-intelligence-refinery''].'
+  - name: rubric_id
+    tests:
+    - not_null
+  - name: rubric_version
+    tests:
+    - not_null
+  - name: overall_verdict
+    tests:
+    - not_null
+    - accepted_values:
+        values:
+        - FAIL
+        - PASS
+        - WARN
+    description: 'Enumerated value. Allowed: [''FAIL'', ''PASS'', ''WARN''].'
+  - name: overall_score
+    tests:
+    - not_null
+    description: Observed range [1.670, 4.330], mean=2.994, stddev=0.552.
+  - name: confidence
+    tests:
+    - not_null
+    - dbt_utils.expression_is_true:
+        expression: confidence >= 0.0 and confidence <= 1.0
+    description: Confidence score. MUST remain in 0.0-1.0 float range. A value of
+      0.87 means 87% confidence. BREAKING CHANGE if converted to integer 0-100 percentage
+      scale — all downstream threshold comparisons will silently produce wrong results.
+  - name: evaluated_at
+    tests:
+    - not_null
+    description: ISO 8601 timestamp in UTC (Z suffix required).

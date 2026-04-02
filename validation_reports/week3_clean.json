@@ -1,11 +1,11 @@
 {
-  "report_id": "740f5fcf-5279-42b9-b64f-17a67438e048",
+  "report_id": "adb2a73a-cf0f-4a20-92f4-36912ad5465c",
   "contract_id": "week3-document-refinery-extractions",
-  "snapshot_id": "4c6eb1f97bf03d304d643e0498014c6840a0c3f0b753812c483a3c0878acd42e",
-  "run_timestamp": "2026-04-01T20:38:07.693076+00:00",
-  "total_checks": 30,
-  "passed": 30,
-  "failed": 0,
+  "snapshot_id": "648f953a3acbcc8ef588f536d0884f952263b59f5aa4deb147bb75cf818257df",
+  "run_timestamp": "2026-04-02T12:59:19.496558+00:00",
+  "total_checks": 33,
+  "passed": 32,
+  "failed": 1,
   "warned": 0,
   "errored": 0,
   "results": [
@@ -140,6 +140,18 @@
       "records_failing": 0,
       "sample_failing": [],
       "message": "processing_time_ms type check passed."
+    },
+    {
+      "check_id": "week3-document-refinery-extractions.processing_time_ms.statistical_drift",
+      "column_name": "processing_time_ms",
+      "check_type": "statistical_drift",
+      "status": "PASS",
+      "actual_value": "current_mean=1958.7300, z_score=1.77",
+      "expected": "z_score < 2 (baseline_mean=1265.2000, stddev=391.6605)",
+      "severity": "LOW",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": "'processing_time_ms' statistical drift: 1.77 stddev (stable). "
     },
     {
       "check_id": "week3-document-refinery-extractions.token_count_input.required",
@@ -314,12 +326,24 @@
       "column_name": "extracted_fact_confidence",
       "check_type": "range",
       "status": "PASS",
-      "actual_value": "min=0.5000, max=0.9900",
+      "actual_value": "min=0.6800, max=0.9900",
       "expected": "min>=0.0, max<=1.0",
       "severity": "LOW",
       "records_failing": 0,
       "sample_failing": [],
       "message": "extracted_fact_confidence range check passed."
+    },
+    {
+      "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.statistical_drift",
+      "column_name": "extracted_fact_confidence",
+      "check_type": "statistical_drift",
+      "status": "PASS",
+      "actual_value": "current_mean=0.8415, z_score=0.65",
+      "expected": "z_score < 2 (baseline_mean=0.7531, stddev=0.1355)",
+      "severity": "LOW",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": "'extracted_fact_confidence' statistical drift: 0.65 stddev (stable). "
     },
     {
       "check_id": "week3-document-refinery-extractions.extracted_fact_page_ref.required",
@@ -344,6 +368,18 @@
       "records_failing": 0,
       "sample_failing": [],
       "message": "extracted_fact_page_ref type check passed."
+    },
+    {
+      "check_id": "week3-document-refinery-extractions.extracted_fact_page_ref.statistical_drift",
+      "column_name": "extracted_fact_page_ref",
+      "check_type": "statistical_drift",
+      "status": "FAIL",
+      "actual_value": "current_mean=22.4300, z_score=6.01",
+      "expected": "z_score < 2 (baseline_mean=5.4733, stddev=2.8206)",
+      "severity": "HIGH",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": "'extracted_fact_page_ref' statistical drift: 6.0 stddev drift. Was 5.4733, now 22.4300. Possible scale change!"
     },
     {
       "check_id": "week3-document-refinery-extractions.extracted_fact_source_excerpt.required",

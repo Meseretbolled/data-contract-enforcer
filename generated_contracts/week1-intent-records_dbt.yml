@@ -1,0 +1,41 @@
+version: 2
+models:
+- name: week1_intent_records
+  description: Auto-generated contract for outputs/week1/intent_records.jsonl. Generated
+    at 2026-04-02T12:51:57.605148+00:00. Review and validate all clauses before use
+    in production.
+  columns:
+  - name: intent_id
+    tests:
+    - not_null
+    - unique
+    description: Unique identifier for intent. UUIDv4.
+  - name: description
+    tests:
+    - not_null
+  - name: created_at
+    tests:
+    - not_null
+    description: ISO 8601 timestamp in UTC (Z suffix required).
+  - name: code_ref_file
+    tests:
+    - not_null
+  - name: code_ref_line_start
+    tests:
+    - not_null
+    description: Observed range [12.000, 120.000], mean=61.180, stddev=29.435.
+  - name: code_ref_line_end
+    tests:
+    - not_null
+    description: Observed range [22.000, 135.000], mean=85.720, stddev=28.216.
+  - name: code_ref_symbol
+    tests:
+    - not_null
+  - name: code_ref_confidence
+    tests:
+    - not_null
+    - dbt_utils.expression_is_true:
+        expression: code_ref_confidence >= 0.0 and code_ref_confidence <= 1.0
+    description: Confidence score. MUST remain in 0.0-1.0 float range. A value of
+      0.87 means 87% confidence. BREAKING CHANGE if converted to integer 0-100 percentage
+      scale — all downstream threshold comparisons will silently produce wrong results.

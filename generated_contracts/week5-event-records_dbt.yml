@@ -2,7 +2,7 @@ version: 2
 models:
 - name: week5_event_records
   description: Auto-generated contract for outputs/week5/events.jsonl. Generated at
-    2026-04-01T20:38:07.060114+00:00. Review and validate all clauses before use in
+    2026-04-02T12:51:59.628169+00:00. Review and validate all clauses before use in
     production.
   columns:
   - name: event_id
@@ -16,21 +16,42 @@ models:
   - name: aggregate_id
     tests:
     - not_null
-    - unique
-    description: Unique identifier for aggregate. UUIDv4.
   - name: aggregate_type
     tests:
     - not_null
   - name: sequence_number
     tests:
     - not_null
-    description: Observed range [1.000, 50.000], mean=25.500, stddev=14.577.
-  - name: payload_doc_id
+    description: Observed range [1.000, 6.000], mean=3.500, stddev=1.722.
+  - name: payload_application_id
     tests:
     - not_null
-    - unique
-    description: Unique identifier for payload doc. UUIDv4.
+  - name: payload_applicant_id
+  - name: payload_requested_amount_usd
+  - name: payload_loan_purpose
+    tests:
+    - accepted_values:
+        values:
+        - equipment_purchase
+        - expansion
+        - real_estate
+        - working_capital
+    description: 'Enumerated value. Allowed: [''equipment_purchase'', ''expansion'',
+      ''real_estate'', ''working_capital''].'
+  - name: payload_loan_term_months
+    description: Observed range [12.000, 60.000], mean=24.000, stddev=16.000.
+  - name: payload_submission_channel
+    tests:
+    - accepted_values:
+        values:
+        - agent
+        - mobile
+        - online
+    description: 'Enumerated value. Allowed: [''agent'', ''mobile'', ''online''].'
   - name: metadata_causation_id
+    tests:
+    - unique
+    description: Unique identifier for metadata causation. UUIDv4.
   - name: metadata_correlation_id
     tests:
     - not_null
@@ -53,3 +74,49 @@ models:
     tests:
     - not_null
     description: ISO 8601 timestamp in UTC (Z suffix required).
+  - name: payload_deadline
+  - name: payload_requested_by
+    tests:
+    - accepted_values:
+        values:
+        - system
+        - underwriting_agent
+    description: 'Enumerated value. Allowed: [''system'', ''underwriting_agent''].'
+  - name: payload_analysis_type
+  - name: payload_credit_score
+    description: Observed range [460.000, 758.000], mean=604.900, stddev=115.760.
+  - name: payload_debt_to_income_ratio
+    description: Observed range [0.176, 0.730], mean=0.425, stddev=0.194.
+  - name: payload_recommendation
+    tests:
+    - accepted_values:
+        values:
+        - APPROVE
+        - DECLINE
+        - REVIEW
+    description: 'Enumerated value. Allowed: [''APPROVE'', ''DECLINE'', ''REVIEW''].'
+  - name: payload_rules_evaluated
+    description: Observed range [8.000, 15.000], mean=11.400, stddev=3.026.
+  - name: payload_rules_passed
+    description: Observed range [8.000, 13.000], mean=11.700, stddev=1.494.
+  - name: payload_compliance_status
+    tests:
+    - accepted_values:
+        values:
+        - COMPLIANT
+        - CONDITIONAL
+        - NON_COMPLIANT
+    description: 'Enumerated value. Allowed: [''COMPLIANT'', ''CONDITIONAL'', ''NON_COMPLIANT''].'
+  - name: payload_decision
+    tests:
+    - accepted_values:
+        values:
+        - APPROVED
+        - DECLINED
+        - PENDING_REVIEW
+    description: 'Enumerated value. Allowed: [''APPROVED'', ''DECLINED'', ''PENDING_REVIEW''].'
+  - name: payload_approved_amount_usd
+    description: Observed range [371660.500, 4122415.140], mean=1747879.925, stddev=1221362.186.
+  - name: payload_interest_rate
+    description: Observed range [0.088, 0.175], mean=0.128, stddev=0.032.
+  - name: payload_decision_rationale
