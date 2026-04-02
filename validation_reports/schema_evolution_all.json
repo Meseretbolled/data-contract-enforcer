@@ -1,12 +1,12 @@
 {
-  "analyzed_at": "2026-04-02T13:06:12.382215+00:00",
+  "analyzed_at": "2026-04-02T14:04:29.792710+00:00",
   "contracts_analyzed": 6,
   "total_changes": 27,
   "total_breaking": 2,
   "reports": [
     {
       "contract_id": "langsmith-traces",
-      "analyzed_at": "2026-04-02T13:06:12.342380+00:00",
+      "analyzed_at": "2026-04-02T14:04:29.762140+00:00",
       "compatibility_verdict": "INSUFFICIENT_SNAPSHOTS",
       "total_changes": 0,
       "breaking_changes": 0,
@@ -16,7 +16,7 @@
     },
     {
       "contract_id": "week1-intent-records",
-      "analyzed_at": "2026-04-02T13:06:12.344841+00:00",
+      "analyzed_at": "2026-04-02T14:04:29.766142+00:00",
       "compatibility_verdict": "INSUFFICIENT_SNAPSHOTS",
       "total_changes": 0,
       "breaking_changes": 0,
@@ -26,7 +26,7 @@
     },
     {
       "contract_id": "week2-verdict-records",
-      "analyzed_at": "2026-04-02T13:06:12.347817+00:00",
+      "analyzed_at": "2026-04-02T14:04:29.770106+00:00",
       "compatibility_verdict": "INSUFFICIENT_SNAPSHOTS",
       "total_changes": 0,
       "breaking_changes": 0,
@@ -36,7 +36,7 @@
     },
     {
       "contract_id": "week3-document-refinery-extractions",
-      "analyzed_at": "2026-04-02T13:06:12.362392+00:00",
+      "analyzed_at": "2026-04-02T14:04:29.782073+00:00",
       "old_snapshot": "20260402_125158",
       "new_snapshot": "20260402_130612",
       "compatibility_verdict": "BACKWARD_COMPATIBLE",
@@ -84,7 +84,7 @@
     },
     {
       "contract_id": "week4-lineage-snapshots",
-      "analyzed_at": "2026-04-02T13:06:12.366808+00:00",
+      "analyzed_at": "2026-04-02T14:04:29.784674+00:00",
       "compatibility_verdict": "INSUFFICIENT_SNAPSHOTS",
       "total_changes": 0,
       "breaking_changes": 0,
@@ -94,7 +94,7 @@
     },
     {
       "contract_id": "week5-event-records",
-      "analyzed_at": "2026-04-02T13:06:12.382127+00:00",
+      "analyzed_at": "2026-04-02T14:04:29.792684+00:00",
       "old_snapshot": "20260401_203807",
       "new_snapshot": "20260402_125159",
       "compatibility_verdict": "BREAKING",
