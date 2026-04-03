@@ -17,3 +17,10 @@ api/
 templates/
 static/
 enforcer_report/dashboard.html
+
+# Web app files — local only, not part of rubric submission
+app.py
+api/
+templates/
+static/
+enforcer_report/dashboard.html
