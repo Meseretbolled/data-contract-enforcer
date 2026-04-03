@@ -1,6 +1,6 @@
 {
   "report_metadata": {
-    "generated_at": "2026-04-03T20:54:32.457467+00:00",
+    "generated_at": "2026-04-03T21:49:59.348882+00:00",
     "generated_by": "contracts/report_generator.py",
     "period": "2026-03-27 to 2026-04-03",
     "auto_generated": true,
@@ -53,8 +53,8 @@
     },
     {
       "contract_id": "week3-document-refinery-extractions",
-      "total_checks": 30,
-      "passed": 30,
+      "total_checks": 35,
+      "passed": 35,
       "failed": 0,
       "warned": 0,
       "errored": 0
@@ -78,13 +78,44 @@
   ],
   "schema_changes_detected": [
     {
-      "contract_id": "week3-document-refinery-extractions",
+      "contract_id": "langsmith-traces",
       "compatibility": "BACKWARD_COMPATIBLE",
-      "total_changes": 4,
+      "total_changes": 10,
       "breaking_changes": 0,
       "action_required": "No action required.",
-      "per_consumer_failure_mode": [],
-      "plain_summary": "Contract 'week3-document-refinery-extractions': 4 schema change(s) detected (0 breaking). Verdict: BACKWARD_COMPATIBLE. No action required."
+      "plain_summary": "Contract 'langsmith-traces': 10 schema change(s) detected (0 breaking). Verdict: BACKWARD_COMPATIBLE. No action required."
+    },
+    {
+      "contract_id": "week1-intent-records",
+      "compatibility": "BACKWARD_COMPATIBLE",
+      "total_changes": 3,
+      "breaking_changes": 0,
+      "action_required": "No action required.",
+      "plain_summary": "Contract 'week1-intent-records': 3 schema change(s) detected (0 breaking). Verdict: BACKWARD_COMPATIBLE. No action required."
+    },
+    {
+      "contract_id": "week3-document-refinery-extractions",
+      "compatibility": "BACKWARD_COMPATIBLE",
+      "total_changes": 2,
+      "breaking_changes": 0,
+      "action_required": "No action required.",
+      "plain_summary": "Contract 'week3-document-refinery-extractions': 2 schema change(s) detected (0 breaking). Verdict: BACKWARD_COMPATIBLE. No action required."
+    },
+    {
+      "contract_id": "week4-lineage-snapshots",
+      "compatibility": "BACKWARD_COMPATIBLE",
+      "total_changes": 1,
+      "breaking_changes": 0,
+      "action_required": "No action required.",
+      "plain_summary": "Contract 'week4-lineage-snapshots': 1 schema change(s) detected (0 breaking). Verdict: BACKWARD_COMPATIBLE. No action required."
+    },
+    {
+      "contract_id": "week5-event-records",
+      "compatibility": "BACKWARD_COMPATIBLE",
+      "total_changes": 6,
+      "breaking_changes": 0,
+      "action_required": "No action required.",
+      "plain_summary": "Contract 'week5-event-records': 6 schema change(s) detected (0 breaking). Verdict: BACKWARD_COMPATIBLE. No action required."
     }
   ],
   "total_breaking_changes": 0,
@@ -122,7 +153,7 @@
         "sample_failing": [],
         "message": "'extracted_fact_confidence' range violation: max=99.0000 > 1.0. Likely cause: scale changed from 0.0-1.0 to 0-100.",
         "contract_id": "week3-document-refinery-extractions",
-        "report_file": "b0d0a96f-943d-4983-8c47-b80ad54ed2ef"
+        "report_file": "122fb22b-6ad1-4e45-8bee-5edde03228b7"
       },
       {
         "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.statistical_drift",
@@ -136,7 +167,7 @@
         "sample_failing": [],
         "message": "'extracted_fact_confidence' statistical drift: 797.0 stddev drift. Was 0.8415, now 75.3067. Possible scale change!",
         "contract_id": "week3-document-refinery-extractions",
-        "report_file": "b0d0a96f-943d-4983-8c47-b80ad54ed2ef"
+        "report_file": "122fb22b-6ad1-4e45-8bee-5edde03228b7"
       }
     ],
     "violation_log": [
