@@ -1,279 +1,243 @@
-# 🗺️ Brownfield Cartographer
+# Data Contract Enforcer
 
-> **Multi-agent codebase intelligence system for rapid FDE onboarding in production environments.**
-> Point it at any GitHub repo or local path. Get a living, queryable map of the system's architecture, data flows, and semantic structure in under 60 seconds.
+> Turns every inter-system data interface into a machine-checked promise.  
+> Detects silent schema violations, traces them to the guilty git commit, and maps the blast radius across all downstream consumers.
 
----
-
-## Quick Start
-
-```bash
-# 1. Clone the repo
-git clone https://github.com/Meseretbolled/brownfield-cartographer.git
-cd brownfield-cartographer
-
-# 2. Create virtual environment and install
-uv sync
-source .venv/bin/activate
-
-# 3. Run analysis on any repo
-cartographer analyze /path/to/repo
-
-# 4. Run analysis on a GitHub URL (auto-clones)
-cartographer analyze https://github.com/dbt-labs/jaffle_shop
-
-# 5. Launch interactive query interface
-cartographer query /path/to/repo
-
-# 6. Print summary of existing analysis
-cartographer summary /path/to/repo
-```
+**Author:** Meseret Bolled · **TRP1 Week 7** · [GitHub](https://github.com/Meseretbolled/data-contract-enforcer)
 
 ---
 
-## Verify It Works
+## Architecture Diagrams
 
-Run these commands to confirm everything is working end-to-end:
+### Input-Output Contract Flow
+![Input-Output Contract Flow](assets/Input-Output%20Contract%20Flow.png)
 
-```bash
-# 1. Check the CLI is installed and responds
-cartographer --help
+### Full System Architecture
+![Full System Architecture](assets/architecture_overview.png)
 
-# 2. Run against the included jaffle_shop artefacts (no cloning needed)
-cartographer query . --cartography-dir cartography-artifacts/jaffle_shop
+### Violation Detection Flow
+![Violation Detection Flow](assets/violation_flow.png)
 
-# 3. Inside the query interface, try:
-navigator> sources
-navigator> sinks
-navigator> blast_radius orders
-navigator> module schema
-navigator> quit
 
-# 4. Run a fresh analysis against jaffle_shop
-git clone https://github.com/dbt-labs/jaffle_shop /tmp/jaffle_shop
-cartographer analyze /tmp/jaffle_shop
+## The Problem This Solves
 
-# 5. Inspect generated artefacts
-ls /tmp/jaffle_shop/.cartography/
-cat /tmp/jaffle_shop/.cartography/analysis_summary.md
-```
+The Week 3 Document Refinery outputs `extracted_facts[].confidence` as a float `0.0–1.0`. A developer changes it to a percentage scale `0–100`. No exception is raised. No pipeline crashes. The output is silently wrong — until this system catches it with two independent checks:
 
----
-
-## What It Does
-
-The Cartographer runs four agents in sequence against any codebase:
-
-| Agent | Role | Output |
-| --- | --- | --- |
-| **Surveyor** | Static AST analysis — module graph, PageRank, git velocity, dead code | `module_graph.json` |
-| **Hydrologist** | Data lineage — Python dataflow, SQL (sqlglot), YAML/DAG configs, notebooks | `lineage_graph.json` |
-| **Semanticist** | LLM purpose statements, doc drift detection, domain clustering, Day-One answers | `semanticist_trace.json` |
-| **Archivist** | Produces all final artefacts — CODEBASE.md, onboarding brief, audit log | `CODEBASE.md`, `onboarding_brief.md` |
-
-The **Navigator** agent provides an interactive query interface over the generated knowledge graph.
-
----
-
-## Commands
-
-### `analyze` — Full pipeline
-
-```bash
-cartographer analyze <repo>
-
-# Options:
-#   --output, -o        Custom output directory (default: <repo>/.cartography/)
-#   --incremental, -i   Only re-analyse files changed since last run
-#   --git-days          Days of git history for velocity (default: 30)
-
-# Examples:
-cartographer analyze /tmp/jaffle_shop
-cartographer analyze https://github.com/dbt-labs/jaffle_shop
-cartographer analyze /tmp/jaffle_shop --output ./my-output --git-days 60
-cartographer analyze /tmp/jaffle_shop --incremental
-```
-
-### `query` — Interactive Navigator
-
-```bash
-cartographer query <repo>
-
-# Inside the navigator:
-blast_radius <node>          # All downstream dependents
-lineage <dataset>            # Upstream sources of a dataset
-module <path>                # Full detail on a module
-sources                      # All data ingestion entry points
-sinks                        # All data output endpoints
-hubs                         # Top modules by PageRank
-quit                         # Exit
-```
-
-### `summary` — Quick summary
-
-```bash
-cartographer summary <repo>
-```
-
----
-
-## Generated Artefacts
-
-Every analysis run produces these files in `.cartography/`:
-
-| File | Description |
-| --- | --- |
-| `module_graph.json` | Full module import graph with PageRank scores |
-| `lineage_graph.json` | Data lineage DAG (datasets + transformations) |
-| `analysis_summary.md` | Human-readable run summary |
-| `CODEBASE.md` | Living context file — inject into any AI coding agent |
-| `onboarding_brief.md` | Five FDE Day-One questions answered with evidence |
-| `cartography_trace.jsonl` | Audit log of every agent action |
+| Check | What it detects | Can it be bypassed? |
+|-------|----------------|---------------------|
+| `range` — max=99.0 exceeds contract max 1.0 | Structural violation | Only by editing the contract |
+| `statistical_drift` — z-score ≈ 797 from baseline | Distribution shift | **No** — reads baseline, not the contract |
 
 ---
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    INPUT["📁 Repo Input\n(local path or GitHub URL)"]
-
-    subgraph CORE["Core Infrastructure"]
-        MODELS["src/models/__init__.py\nPydantic Schemas\nModuleNode · DatasetNode\nTransformationNode · Edge"]
-        KG["src/graph/knowledge_graph.py\nKnowledgeGraph\nNetworkX DiGraph\nPageRank · BFS · SCC"]
-    end
-
-    subgraph ANALYZERS["Language Analyzers"]
-        TSA["src/analyzers/tree_sitter_analyzer.py\nMulti-language AST Parser\nPython · JS · YAML"]
-        SQL["src/analyzers/sql_lineage.py\nsqlglot SQL Parser\ndbt ref() · CTEs · JOINs"]
-        DAG["src/analyzers/dag_config_parser.py\nYAML/Config Parser\nAirflow DAGs · dbt schema.yml"]
-    end
-
-    subgraph AGENTS["Analysis Agents"]
-        SUR["🔭 Surveyor\nsrc/agents/surveyor.py\nModule graph · PageRank\nGit velocity · Dead code"]
-        HYD["💧 Hydrologist\nsrc/agents/hydrologist.py\nData lineage DAG\nblast_radius · sources/sinks"]
-        SEM["🧠 Semanticist\nsrc/agents/semanticist.py\nLLM purpose statements\nDoc drift · Domain clusters\nDay-One answers"]
-        ARC["🗄️ Archivist\nsrc/agents/archivist.py\nCODEBASE.md\nonboarding_brief.md\ncartography_trace.jsonl"]
-    end
-
-    subgraph QUERY["Query Interface"]
-        NAV["🧭 Navigator\nsrc/agents/navigator.py\nfind_implementation()\ntrace_lineage()\nblast_radius()\nexplain_module()"]
-    end
-
-    subgraph OUTPUTS["Generated Artefacts"]
-        MG["module_graph.json"]
-        LG["lineage_graph.json"]
-        CM["CODEBASE.md"]
-        OB["onboarding_brief.md"]
-        TR["cartography_trace.jsonl"]
-    end
-
-    CLI["src/cli.py\ncartographer analyze\ncartographer query\ncartographer summary"]
-    ORCH["src/orchestrator.py\nPipeline orchestration\nIncremental mode\nError isolation"]
-
-    INPUT --> CLI
-    CLI --> ORCH
-    ORCH --> SUR
-    ORCH --> HYD
-    TSA --> SUR
-    SQL --> HYD
-    DAG --> HYD
-    SUR --> KG
-    HYD --> KG
-    KG --> MODELS
-    SUR --> ARC
-    HYD --> ARC
-    KG --> SEM
-    SEM --> ARC
-    ARC --> CM
-    ARC --> OB
-    ARC --> TR
-    SUR --> MG
-    HYD --> LG
-    KG --> NAV
-    NAV --> QUERY
-
-    style CORE fill:#1e3a5f,color:#fff
-    style ANALYZERS fill:#1a4731,color:#fff
-    style AGENTS fill:#4a1942,color:#fff
-    style QUERY fill:#4a3000,color:#fff
-    style OUTPUTS fill:#3a1a00,color:#fff
+```
+Data Sources (Weeks 1–5 + LangSmith)
+        │
+        ▼
+ContractGenerator          8-step pipeline: load → flatten → profile →
+contracts/generator.py     LLM annotate (OpenRouter) → lineage inject →
+                           Bitol YAML → dbt schema.yml → snapshot
+        │
+        ▼
+ValidationRunner           --mode AUDIT | WARN | ENFORCE
+contracts/runner.py        Checks: required, type, range, uuid, enum,
+                           datetime, statistical drift (z-score)
+        │
+   ┌────┴────┐
+ PASS      FAIL ──► ViolationAttributor    Registry blast radius (PRIMARY)
+                    contracts/attributor.py Lineage transitive BFS
+                           │               Git blame + confidence score
+                           ▼
+                    violation_log/violations.jsonl
+        │
+        ├──► SchemaEvolutionAnalyzer   Snapshot diffs · BREAKING/COMPATIBLE
+        │    contracts/schema_analyzer.py  taxonomy · migration checklist
+        │
+        ├──► AI Contract Extensions    Embedding drift · prompt validation
+        │    contracts/ai_extensions.py   output violation rate · writes to log
+        │
+        ▼
+ReportGenerator            Health score 0–100 · plain-English violations
+contracts/report_generator.py  per-consumer failure analysis · recommendations
+        │
+        ▼
+enforcer_report/report_data.json
 ```
 
 ---
 
-## Project Structure
+## Repository Structure
 
 ```
-brownfield-cartographer/
-├── src/
-│   ├── cli.py                          # Entry point: analyze, query, summary
-│   ├── orchestrator.py                 # Pipeline wiring + incremental mode
-│   ├── models/__init__.py              # Pydantic schemas (all node/edge types)
-│   ├── graph/knowledge_graph.py        # NetworkX wrapper + serialization
-│   ├── analyzers/
-│   │   ├── tree_sitter_analyzer.py     # Multi-language AST parsing
-│   │   ├── sql_lineage.py              # sqlglot SQL dependency extraction
-│   │   └── dag_config_parser.py        # Airflow/dbt YAML config parsing
-│   └── agents/
-│       ├── surveyor.py                 # Module graph, PageRank, git velocity
-│       ├── hydrologist.py              # Data lineage graph
-│       ├── semanticist.py              # LLM purpose statements, doc drift
-│       ├── archivist.py                # CODEBASE.md, onboarding brief
-│       └── navigator.py               # Interactive query agent
-├── cartography-artifacts/
-│   └── jaffle_shop/                    # Pre-generated artefacts (jaffle_shop)
-│       ├── module_graph.json
-│       ├── lineage_graph.json
-│       └── analysis_summary.md
-├── pyproject.toml
-└── README.md
+data-contract-enforcer/
+│
+├── contracts/                      Core enforcement components
+│   ├── generator.py                ContractGenerator — 8-step auto-generation
+│   ├── runner.py                   ValidationRunner  — AUDIT / WARN / ENFORCE
+│   ├── attributor.py               ViolationAttributor — blast radius + git blame
+│   ├── schema_analyzer.py          SchemaEvolutionAnalyzer — snapshot diffing
+│   ├── ai_extensions.py            AI Extensions — drift, validation, rate
+│   └── report_generator.py         ReportGenerator — health score + 5 sections
+│
+├── contract_registry/
+│   └── subscriptions.yaml          7 subscriptions · tier · failure_mode · on_violation
+│
+├── generated_contracts/            Auto-generated — do not edit manually
+│   ├── week1-intent-records        8 clauses
+│   ├── week2-verdict-records       8 clauses
+│   ├── week3-document-refinery-extractions   13 clauses ← confidence 0.0–1.0
+│   ├── week4-lineage-snapshots     8 clauses
+│   ├── week5-event-records         31 clauses
+│   └── langsmith-traces            28 clauses
+│   (each contract has a .yaml + _dbt.yml counterpart)
+│
+├── outputs/                        Input JSONL data files
+│   ├── week1/intent_records.jsonl          50 records
+│   ├── week2/verdicts.jsonl                50 records
+│   ├── week3/extractions.jsonl             50 records  ← clean baseline
+│   ├── week3/extractions_violated.jsonl    50 records  ← confidence × 100
+│   ├── week4/lineage_snapshots.jsonl       3 snapshots
+│   ├── week5/events.jsonl                  60 records
+│   └── traces/runs.jsonl                   210 records
+│
+├── validation_reports/             Validation run outputs
+│   ├── week*_clean.json            All passing — baselines established here
+│   ├── week3_violated.json         2 FAILED — core violation evidence
+│   ├── ai_extensions.json          Overall: PASS
+│   └── schema_evolution_all.json
+│
+├── violation_log/
+│   └── violations.jsonl            Attributed violations with blast radius + git blame
+│
+├── schema_snapshots/
+│   ├── baselines.json              Statistical baselines (written from clean data only)
+│   ├── embedding_baselines.npz     Embedding centroid baseline
+│   └── <contract-id>/              2+ timestamped YAML snapshots per contract
+│
+├── enforcer_report/
+│   └── report_data.json            Health score 70/100 · auto-generated
+│
+├── assets/                         Architecture diagrams
+├── create_violation.py             Injects confidence × 100 scale change
+└── DOMAIN_NOTES.md
 ```
 
 ---
 
-## Supported Languages & Patterns
-
-| Language | What's Extracted |
-| --- | --- |
-| **Python** | Imports, functions, classes, pandas/PySpark/SQLAlchemy dataflow |
-| **SQL / dbt** | Table dependencies, CTEs, JOINs, `ref()` calls |
-| **YAML** | Airflow DAG topology, dbt `schema.yml` sources and models |
-| **Jupyter** | `.ipynb` cell source — read/write data references |
-| **JavaScript/TypeScript** | AST parsing (imports, exports) |
-
----
-
-## Environment Variables
+## Setup
 
 ```bash
-# LLM model selection (Semanticist agent)
-ANTHROPIC_API_KEY=sk-ant-...          # Required for LLM features
-CARTOGRAPHER_FAST_MODEL=claude-haiku-4-5-20251001   # Bulk summaries
-CARTOGRAPHER_STRONG_MODEL=claude-haiku-4-5-20251001 # Synthesis tasks
-CARTOGRAPHER_DOMAIN_K=6               # Number of domain clusters
+# Python 3.11+
+pip install pandas pyyaml numpy scikit-learn openai python-dotenv gitpython
+
+# .env
+OPENAI_API_KEY=your_openrouter_key
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
 ```
 
-> LLM features are **optional**. All static analysis (Surveyor + Hydrologist) works without any API key.
+---
+
+## Running the Pipeline
+
+### 1 — Generate contracts (all 6)
+
+```bash
+python contracts/generator.py \
+    --source outputs/week3/extractions.jsonl \
+    --contract-id week3-document-refinery-extractions \
+    --lineage outputs/week4/lineage_snapshots.jsonl \
+    --output generated_contracts/
+# Repeat for week1, week2, week4, week5, langsmith-traces
+# Use --no-llm to skip OpenRouter annotation
+```
+
+### 2 — Validate clean data (establishes baselines)
+
+```bash
+python contracts/runner.py \
+    --contract generated_contracts/week3-document-refinery-extractions.yaml \
+    --data    outputs/week3/extractions.jsonl \
+    --output  validation_reports/week3_clean.json \
+    --mode    AUDIT
+# 30 passed · 0 failed · baselines saved
+```
+
+> Run clean data **before** violated data — baselines are written on the first run only.
+
+### 3 — Detect the violation (ENFORCE mode)
+
+```bash
+python contracts/runner.py \
+    --contract generated_contracts/week3-document-refinery-extractions.yaml \
+    --data    outputs/week3/extractions_violated.jsonl \
+    --output  validation_reports/week3_violated.json \
+    --mode    ENFORCE
+# ❌ confidence.range FAIL · ❌ confidence.statistical_drift FAIL
+# 🚫 PIPELINE BLOCKED
+```
+
+| Mode | Behaviour |
+|------|-----------|
+| `AUDIT` | Log only, never block |
+| `WARN` | Block on CRITICAL, quarantine data |
+| `ENFORCE` | Block on CRITICAL + HIGH, exit code 1 |
+
+### 4 — Attribute violations
+
+```bash
+python contracts/attributor.py \
+    --violation validation_reports/week3_violated.json \
+    --lineage   outputs/week4/lineage_snapshots.jsonl \
+    --registry  contract_registry/subscriptions.yaml \
+    --output    violation_log/violations.jsonl
+# 2 subscribers · depth 3 · git blame score=1.0
+```
+
+### 5 — Schema evolution
+
+```bash
+python contracts/schema_analyzer.py --all \
+    --output validation_reports/schema_evolution_all.json
+```
+
+### 6 — AI extensions
+
+```bash
+python contracts/ai_extensions.py \
+    --extractions outputs/week3/extractions.jsonl \
+    --verdicts    outputs/week2/verdicts.jsonl \
+    --traces      outputs/traces/runs.jsonl \
+    --output      validation_reports/ai_extensions.json \
+    --violation-log violation_log/violations.jsonl
+```
+
+### 7 — Generate report
+
+```bash
+python contracts/report_generator.py --output enforcer_report/report_data.json
+# Health score: 70/100
+```
 
 ---
 
-## Target Codebases Tested
+## Key Design Decisions
 
-| Repo | Modules | Datasets | Transformations |
-| --- | --- | --- | --- |
-| [dbt jaffle_shop](https://github.com/dbt-labs/jaffle_shop) | 3 | 9 | 5 |
+**Registry over lineage for blast radius.** At Tier 2+ (multi-team), external lineage graphs are inaccessible. The `contract_registry/subscriptions.yaml` is the primary source. Lineage enriches it with transitive depth — it does not replace it.
+
+**Two checks, two defence lines.** The range check can be defeated by editing the contract. The statistical drift check reads only the stored baseline — editing the contract does nothing. Both must fire to block.
+
+**Baselines written once.** Overwriting baselines on every run would let violated data become the new normal. Reset deliberately: `rm schema_snapshots/baselines.json`.
 
 ---
 
-## Dependencies
+## Troubleshooting
 
-Key dependencies (see `pyproject.toml` for full list):
-
-- `tree-sitter` — multi-language AST parsing
-- `sqlglot` — SQL parsing and lineage extraction
-- `networkx` — graph construction, PageRank, BFS
-- `pydantic` — schema validation
-- `typer` + `rich` — CLI and terminal output
-- `gitpython` — git history analysis
-- `anthropic` — LLM calls (optional)
+| Symptom | Fix |
+|---------|-----|
+| `failed = 0` on violated data | `rm schema_snapshots/baselines.json` → re-run clean first |
+| Attributor shows 0 subscribers | Check `breaking_fields` in `contract_registry/subscriptions.yaml` |
+| Embedding shape mismatch | `rm schema_snapshots/embedding_baselines.npz` → re-run |
+| Schema analyzer finds no diff | Re-run generator on violated data to create a second snapshot |
+| LLM annotation skipped | Set `OPENAI_API_KEY` in `.env` or pass `--no-llm` |
