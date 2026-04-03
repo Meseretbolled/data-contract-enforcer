@@ -2,7 +2,7 @@ version: 2
 models:
 - name: week2_verdict_records
   description: Auto-generated contract for outputs/week2/verdicts.jsonl. Generated
-    at 2026-04-02T12:51:58.202437+00:00. Review and validate all clauses before use
+    at 2026-04-03T20:21:29.423106+00:00. Review and validate all clauses before use
     in production.
   columns:
   - name: verdict_id
@@ -42,13 +42,11 @@ models:
     - not_null
     description: Observed range [1.670, 4.330], mean=2.994, stddev=0.552.
   - name: confidence
+    description: 'BREAKING CHANGE if converted to 0-100 scale. Range: [0.0, 1.0].'
     tests:
     - not_null
     - dbt_utils.expression_is_true:
         expression: confidence >= 0.0 and confidence <= 1.0
-    description: Confidence score. MUST remain in 0.0-1.0 float range. A value of
-      0.87 means 87% confidence. BREAKING CHANGE if converted to integer 0-100 percentage
-      scale — all downstream threshold comparisons will silently produce wrong results.
   - name: evaluated_at
     tests:
     - not_null

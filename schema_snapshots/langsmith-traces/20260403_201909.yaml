@@ -6,7 +6,7 @@ info:
   version: 1.0.0
   owner: data-engineering-team
   description: Auto-generated contract for outputs/traces/runs.jsonl. Generated at
-    2026-04-02T12:52:00.141505+00:00. Review and validate all clauses before use in
+    2026-04-03T20:19:09.849655+00:00. Review and validate all clauses before use in
     production.
 servers:
   local:

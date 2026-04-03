@@ -6,7 +6,7 @@ info:
   version: 1.0.0
   owner: data-engineering-team
   description: Auto-generated contract for outputs/week5/events.jsonl. Generated at
-    2026-04-03T20:21:30.123548+00:00. Review and validate all clauses before use in
+    2026-04-03T20:19:09.445225+00:00. Review and validate all clauses before use in
     production.
 servers:
   local:

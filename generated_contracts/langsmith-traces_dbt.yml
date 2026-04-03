@@ -2,7 +2,7 @@ version: 2
 models:
 - name: langsmith_traces
   description: Auto-generated contract for outputs/traces/runs.jsonl. Generated at
-    2026-04-02T12:52:00.141505+00:00. Review and validate all clauses before use in
+    2026-04-03T20:21:30.505130+00:00. Review and validate all clauses before use in
     production.
   columns:
   - name: id

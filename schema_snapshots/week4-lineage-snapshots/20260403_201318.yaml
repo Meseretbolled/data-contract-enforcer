@@ -6,7 +6,7 @@ info:
   version: 1.0.0
   owner: data-engineering-team
   description: Auto-generated contract for outputs/week4/lineage_snapshots.jsonl.
-    Generated at 2026-04-03T20:21:29.749005+00:00. Review and validate all clauses
+    Generated at 2026-04-03T20:13:18.235015+00:00. Review and validate all clauses
     before use in production.
 servers:
   local:
@@ -52,18 +52,6 @@ schema:
   node_label:
     type: string
     required: true
-  edge_relationship:
-    type: string
-    required: false
-    enum:
-    - IMPORTS
-    - CALLS
-    - READS
-    - WRITES
-    - PRODUCES
-    - CONSUMES
-    description: Edge relationship type. BREAKING if existing values removed. One
-      of the six canonical lineage relationship types.
 quality:
   type: SodaChecks
   specification:

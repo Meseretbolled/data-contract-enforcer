@@ -1,8 +1,10 @@
 {
-  "report_id": "be2b9419-b262-4714-8b13-75cd7b5ae26d",
+  "report_id": "da529902-8d5f-4326-b2dc-a2b0a861a003",
   "contract_id": "week2-verdict-records",
   "snapshot_id": "c60f167159e7255510731c3d4876554020c99b4505617da086ece52d940b9a50",
-  "run_timestamp": "2026-04-02T12:59:19.138317+00:00",
+  "run_timestamp": "2026-04-03T20:13:19.716808+00:00",
+  "mode": "AUDIT",
+  "pipeline_action": "PASS",
   "total_checks": 21,
   "passed": 21,
   "failed": 0,
@@ -261,5 +263,11 @@
       "sample_failing": [],
       "message": "evaluated_at datetime_format check passed."
     }
-  ]
+  ],
+  "mode_detail": {
+    "pipeline_action": "PASS",
+    "mode": "AUDIT",
+    "blocking_checks": [],
+    "block_count": 0
+  }
 }

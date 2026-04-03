@@ -1,13 +1,15 @@
 {
-  "report_id": "09032c04-2522-4306-bb5f-4baae6f143aa",
+  "report_id": "c30878e0-a73e-4906-9667-e3fe55af7d72",
   "contract_id": "week4-lineage-snapshots",
   "snapshot_id": "ff3347c4581676e05e593cb9b26aced1506ac0f3a310f9c91c4e62fde247f07f",
-  "run_timestamp": "2026-04-02T12:59:19.897202+00:00",
+  "run_timestamp": "2026-04-03T20:13:20.409863+00:00",
+  "mode": "AUDIT",
+  "pipeline_action": "PASS",
   "total_checks": 18,
-  "passed": 17,
+  "passed": 18,
   "failed": 0,
   "warned": 0,
-  "errored": 1,
+  "errored": 0,
   "results": [
     {
       "check_id": "week4-lineage-snapshots.snapshot_id.required",
@@ -92,6 +94,18 @@
       "records_failing": 0,
       "sample_failing": [],
       "message": "git_commit type check passed."
+    },
+    {
+      "check_id": "week4-lineage-snapshots.git_commit.enum",
+      "column_name": "git_commit",
+      "check_type": "enum",
+      "status": "PASS",
+      "actual_value": "all in ['a1b2c3d4e5f6789012345678901234567890abcd', 'b2c3d4e5f67890123456789012345678901bcde', 'c3d4e5f678901234567890123456789012cdef']",
+      "expected": "one of ['a1b2c3d4e5f6789012345678901234567890abcd', 'b2c3d4e5f67890123456789012345678901bcde', 'c3d4e5f678901234567890123456789012cdef']",
+      "severity": "LOW",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": "git_commit enum check passed."
     },
     {
       "check_id": "week4-lineage-snapshots.captured_at.required",
@@ -182,8 +196,8 @@
       "column_name": "node_type",
       "check_type": "enum",
       "status": "PASS",
-      "actual_value": "all in ['FILE', 'TABLE', 'SERVICE', 'MODEL', 'PIPELINE', 'EXTERNAL']",
-      "expected": "one of ['FILE', 'TABLE', 'SERVICE', 'MODEL', 'PIPELINE', 'EXTERNAL']",
+      "actual_value": "all in ['FILE', 'TABLE']",
+      "expected": "one of ['FILE', 'TABLE']",
       "severity": "LOW",
       "records_failing": 0,
       "sample_failing": [],
@@ -212,18 +226,12 @@
       "records_failing": 0,
       "sample_failing": [],
       "message": "node_label type check passed."
-    },
-    {
-      "check_id": "week4-lineage-snapshots.codebase_root_required.exists",
-      "column_name": "codebase_root_required",
-      "check_type": "column_exists",
-      "status": "ERROR",
-      "actual_value": "column not found in data",
-      "expected": "column present",
-      "severity": "CRITICAL",
-      "records_failing": 60,
-      "sample_failing": [],
-      "message": "Column 'codebase_root_required' defined in contract but not found in data. Available: ['snapshot_id', 'codebase_root', 'git_commit', 'captured_at', 'node_node_id']"
     }
-  ]
+  ],
+  "mode_detail": {
+    "pipeline_action": "PASS",
+    "mode": "AUDIT",
+    "blocking_checks": [],
+    "block_count": 0
+  }
 }

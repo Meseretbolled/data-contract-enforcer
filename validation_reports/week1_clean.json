@@ -1,8 +1,10 @@
 {
-  "report_id": "c363940e-60d6-4776-b455-543d9da1239c",
+  "report_id": "766343b5-6c84-4f03-94f5-c8a7e4747f00",
   "contract_id": "week1-intent-records",
   "snapshot_id": "ee2100ed8729dfe880dba4b66860a121d6c5d4995ef1acf5aa9796245cb56b14",
-  "run_timestamp": "2026-04-02T12:59:18.716474+00:00",
+  "run_timestamp": "2026-04-03T20:31:08.394868+00:00",
+  "mode": "AUDIT",
+  "pipeline_action": "PASS",
   "total_checks": 19,
   "passed": 19,
   "failed": 0,
@@ -237,5 +239,11 @@
       "sample_failing": [],
       "message": "code_ref_confidence range check passed."
     }
-  ]
+  ],
+  "mode_detail": {
+    "pipeline_action": "PASS",
+    "mode": "AUDIT",
+    "blocking_checks": [],
+    "block_count": 0
+  }
 }

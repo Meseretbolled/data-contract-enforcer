@@ -5,13 +5,13 @@ info:
   title: Contract — week3-document-refinery-extractions
   version: 1.0.0
   owner: data-engineering-team
-  description: Auto-generated contract for outputs/week3/extractions.jsonl. Generated
-    at 2026-04-02T12:51:58.717071+00:00. Review and validate all clauses before use
-    in production.
+  description: Auto-generated contract for outputs/week3/extractions_violated.jsonl.
+    Generated at 2026-04-03T20:13:21.835320+00:00. Review and validate all clauses
+    before use in production.
 servers:
   local:
     type: local
-    path: outputs/week3/extractions.jsonl
+    path: outputs/week3/extractions_violated.jsonl
     format: jsonl
 terms:
   usage: Internal inter-system data contract. Do not publish externally.
@@ -34,15 +34,15 @@ schema:
   processing_time_ms:
     type: integer
     required: true
-    description: Observed range [625.000, 3350.000], mean=1958.730, stddev=756.718.
+    description: Observed range [565.000, 1899.000], mean=1265.200, stddev=391.661.
   token_count_input:
     type: integer
     required: true
-    description: Observed range [2237.000, 7524.000], mean=5237.690, stddev=1538.137.
+    description: Observed range [4000.000, 4000.000], mean=4000.000, stddev=0.000.
   token_count_output:
     type: integer
     required: true
-    description: Observed range [315.000, 1492.000], mean=977.100, stddev=337.836.
+    description: Observed range [800.000, 800.000], mean=800.000, stddev=0.000.
   extracted_at:
     type: string
     required: true
@@ -67,7 +67,7 @@ schema:
   extracted_fact_page_ref:
     type: integer
     required: true
-    description: Observed range [1.000, 45.000], mean=22.430, stddev=11.991.
+    description: Observed range [1.000, 10.000], mean=5.473, stddev=2.821.
   extracted_fact_source_excerpt:
     type: string
     required: true
@@ -79,21 +79,4 @@ quality:
     - missing_count(doc_id) = 0
 lineage:
   upstream: []
-  downstream:
-  - id: file::src/week4/cartographer.py
-    description: 'Downstream: file::src/week4/cartographer.py reads from week3 table'
-    fields_consumed:
-    - doc_id
-    - extracted_facts
-    breaking_if_changed:
-    - extracted_facts.confidence
-    - doc_id
-  - id: file::src/week7/contract_enforcer.py
-    description: 'Downstream: file::src/week7/contract_enforcer.py reads from week3
-      table'
-    fields_consumed:
-    - doc_id
-    - extracted_facts
-    breaking_if_changed:
-    - extracted_facts.confidence
-    - doc_id
+  downstream: []

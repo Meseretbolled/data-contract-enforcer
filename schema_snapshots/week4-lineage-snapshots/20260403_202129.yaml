@@ -52,18 +52,6 @@ schema:
   node_label:
     type: string
     required: true
-  edge_relationship:
-    type: string
-    required: false
-    enum:
-    - IMPORTS
-    - CALLS
-    - READS
-    - WRITES
-    - PRODUCES
-    - CONSUMES
-    description: Edge relationship type. BREAKING if existing values removed. One
-      of the six canonical lineage relationship types.
 quality:
   type: SodaChecks
   specification:

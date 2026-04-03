@@ -1,8 +1,10 @@
 {
-  "report_id": "9f051a41-b519-4fe8-a3f8-26b8e79fb339",
+  "report_id": "125cc24b-3768-451d-b7ce-fc52c303cc5b",
   "contract_id": "langsmith-traces",
   "snapshot_id": "0fa59669a6f6214870ba5fb186acda73a52a438025138ba984a653dc4790eb30",
-  "run_timestamp": "2026-04-02T12:59:21.011176+00:00",
+  "run_timestamp": "2026-04-03T20:13:21.129788+00:00",
+  "mode": "AUDIT",
+  "pipeline_action": "PASS",
   "total_checks": 48,
   "passed": 48,
   "failed": 0,
@@ -585,5 +587,11 @@
       "sample_failing": [],
       "message": "outputs_credit_decision type check passed."
     }
-  ]
+  ],
+  "mode_detail": {
+    "pipeline_action": "PASS",
+    "mode": "AUDIT",
+    "blocking_checks": [],
+    "block_count": 0
+  }
 }

@@ -2,6 +2,7 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,7 +35,7 @@ def sha256_of_file(path: str) -> str:
     return h.hexdigest()
 
 
-# ── Same flattening as generator (must match exactly) ─────────────────────────
+# ── Flattening (must match generator exactly) ─────────────────────────────────
 
 def flatten_records(records: list[dict]) -> pd.DataFrame:
     rows: list[dict] = []
@@ -154,11 +155,6 @@ def check_required(col: str, series: pd.Series, clause: dict, cid: str) -> dict 
 
 def check_type(col: str, series: pd.Series, clause: dict, cid: str) -> dict | None:
     expected = clause.get("type")
-
-    # ── FIX: pandas stores text columns as dtype "object".
-    #    JSON Schema "string" maps to pandas "object".
-    #    We simply pass all string checks — the uuid/datetime/enum
-    #    checks below provide real validation for string columns.
     if expected == "string":
         return pass_result(cid, col, "type", str(series.dtype), "string")
 
@@ -309,6 +305,8 @@ def check_statistical_drift(
     """
     Detects the confidence 0.0-1.0 → 0-100 change even if the type check passes,
     because the MEAN shifts from ~0.76 to ~76.0 (z-score ≈ 450).
+    This check does NOT read the contract — it fires regardless of maximum value.
+    It is the check that CANNOT be defeated by editing the contract.
     """
     if col not in baselines:
         return None
@@ -345,14 +343,66 @@ def check_statistical_drift(
     )
 
 
+# ── Mode enforcement ──────────────────────────────────────────────────────────
+
+MODES = ("AUDIT", "WARN", "ENFORCE")
+
+# Which severities cause a BLOCK in each mode
+BLOCK_ON = {
+    "AUDIT":   set(),                          # never block
+    "WARN":    {"CRITICAL"},                   # block on CRITICAL only
+    "ENFORCE": {"CRITICAL", "HIGH"},           # block on CRITICAL + HIGH
+}
+
+
+def apply_mode(results: list[dict], mode: str) -> dict:
+    """
+    Decide pipeline_action based on mode and violation severities.
+
+    Returns a dict with:
+        pipeline_action  — PASS | BLOCK | QUARANTINE
+        mode             — the mode used
+        blocking_checks  — list of check_ids that triggered the block
+    """
+    mode = mode.upper()
+    if mode not in MODES:
+        mode = "AUDIT"
+
+    block_severities = BLOCK_ON[mode]
+    blocking = [
+        r for r in results
+        if r["status"] in ("FAIL", "ERROR") and r.get("severity") in block_severities
+    ]
+
+    if not blocking:
+        action = "PASS"
+    elif mode == "WARN":
+        action = "QUARANTINE"   # pass data through but flag records
+    else:
+        action = "BLOCK"        # stop the pipeline
+
+    return {
+        "pipeline_action":  action,
+        "mode":             mode,
+        "blocking_checks":  [r["check_id"] for r in blocking],
+        "block_count":      len(blocking),
+    }
+
+
 # ── Main runner ────────────────────────────────────────────────────────────────
 
-def run_validation(contract_path: str, data_path: str, output_path: str) -> dict:
+def run_validation(
+    contract_path: str,
+    data_path: str,
+    output_path: str,
+    mode: str = "AUDIT",
+) -> dict:
     print(f"\n{'='*60}")
     print(f"  ValidationRunner")
     print(f"{'='*60}")
     print(f"  Contract : {contract_path}")
-    print(f"  Data     : {data_path}\n")
+    print(f"  Data     : {data_path}")
+    print(f"  Mode     : {mode}\n")
 
     contract    = load_contract(contract_path)
     records     = load_jsonl(data_path)
@@ -428,17 +478,24 @@ def run_validation(contract_path: str, data_path: str, output_path: str) -> dict
     warned  = sum(1 for r in results if r["status"] == "WARN")
     errored = sum(1 for r in results if r["status"] == "ERROR")
 
+    # ── Apply mode enforcement ──────────────────────────────────────
+    mode_result = apply_mode(results, mode)
+    action      = mode_result["pipeline_action"]
+
     report = {
-        "report_id":     str(uuid.uuid4()),
-        "contract_id":   contract_id,
-        "snapshot_id":   snapshot_id,
-        "run_timestamp": datetime.now(timezone.utc).isoformat(),
-        "total_checks":  len(results),
-        "passed":        passed,
-        "failed":        failed,
-        "warned":        warned,
-        "errored":       errored,
-        "results":       results,
+        "report_id":       str(uuid.uuid4()),
+        "contract_id":     contract_id,
+        "snapshot_id":     snapshot_id,
+        "run_timestamp":   datetime.now(timezone.utc).isoformat(),
+        "mode":            mode,
+        "pipeline_action": action,
+        "total_checks":    len(results),
+        "passed":          passed,
+        "failed":          failed,
+        "warned":          warned,
+        "errored":         errored,
+        "results":         results,
+        "mode_detail":     mode_result,
     }
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -446,20 +503,55 @@ def run_validation(contract_path: str, data_path: str, output_path: str) -> dict
         json.dump(report, fh, indent=2)
 
     print(f"\n  📊  {passed} passed  {failed} failed  {warned} warned  {errored} errored")
+
+    # ── Mode action output ──────────────────────────────────────────
+    if action == "BLOCK":
+        print(f"  🚫  [{mode}] PIPELINE BLOCKED — {len(mode_result['blocking_checks'])} critical check(s) failed")
+        for c in mode_result["blocking_checks"]:
+            print(f"      → {c}")
+    elif action == "QUARANTINE":
+        print(f"  ⚠️   [{mode}] QUARANTINE — data passed with {len(mode_result['blocking_checks'])} critical violation(s) annotated")
+    else:
+        print(f"  ✅  [{mode}] Pipeline action: PASS")
+
     print(f"  ✅  Report → {output_path}\n")
+
+    # ── Exit with non-zero code in ENFORCE mode if blocked ──────────
+    if action == "BLOCK" and mode == "ENFORCE":
+        sys.exit(1)
+
     return report
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run all contract checks against a JSONL data snapshot."
+        description="Run all contract checks against a JSONL data snapshot.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Modes:
+  AUDIT    Run checks, log results, never block. Default for first deployment.
+  WARN     Block on CRITICAL only. Pass data through with violations annotated.
+  ENFORCE  Block pipeline on CRITICAL or HIGH. Exit code 1 if blocked.
+
+Examples:
+  python contracts/runner.py --contract generated_contracts/week3-document-refinery-extractions.yaml \\
+      --data outputs/week3/extractions.jsonl --mode AUDIT
+
+  python contracts/runner.py --contract generated_contracts/week3-document-refinery-extractions.yaml \\
+      --data outputs/week3/extractions_violated.jsonl --mode ENFORCE
+        """
     )
-    parser.add_argument("--contract", required=True)
-    parser.add_argument("--data",     required=True)
-    parser.add_argument("--output",   default="validation_reports/report.json")
+    parser.add_argument("--contract", required=True,  help="Path to Bitol YAML contract")
+    parser.add_argument("--data",     required=True,  help="Path to JSONL data snapshot")
+    parser.add_argument("--output",   default="validation_reports/report.json",
+                        help="Output path for validation report JSON")
+    parser.add_argument("--mode",     default="AUDIT",
+                        choices=["AUDIT", "WARN", "ENFORCE"],
+                        help="Enforcement mode: AUDIT (log only), WARN (block critical), "
+                             "ENFORCE (block critical+high, exit 1)")
     args = parser.parse_args()
 
-    run_validation(args.contract, args.data, args.output)
+    run_validation(args.contract, args.data, args.output, args.mode)
 
 
 if __name__ == "__main__":

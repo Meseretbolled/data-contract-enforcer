@@ -2,7 +2,7 @@ version: 2
 models:
 - name: week4_lineage_snapshots
   description: Auto-generated contract for outputs/week4/lineage_snapshots.jsonl.
-    Generated at 2026-04-02T12:51:59.144356+00:00. Review and validate all clauses
+    Generated at 2026-04-03T20:21:29.749005+00:00. Review and validate all clauses
     before use in production.
   columns:
   - name: snapshot_id

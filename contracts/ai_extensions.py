@@ -390,6 +390,48 @@ def load_jsonl(path: str) -> list:
     return records
 
 
+
+# ── Violation log integration ─────────────────────────────────────────────────
+
+def write_ai_violation(
+    check_id: str,
+    check_type: str,
+    status: str,
+    severity: str,
+    actual_value: str,
+    expected: str,
+    message: str,
+    violation_log_path: str = "violation_log/violations.jsonl",
+) -> None:
+    """
+    Write AI extension violations (WARN or FAIL) to the violation log.
+    This is what the rubric requires — rising drift/rate triggers WARN in violation_log.
+    """
+    Path(violation_log_path).parent.mkdir(parents=True, exist_ok=True)
+    entry = {
+        "violation_id":  str(uuid.uuid4()),
+        "check_id":      check_id,
+        "contract_id":   "ai-contract-extensions",
+        "column_name":   check_type,
+        "severity":      severity,
+        "detected_at":   datetime.now(timezone.utc).isoformat(),
+        "actual_value":  actual_value,
+        "expected":      expected,
+        "records_failing": 0,
+        "source":        "ai_extensions",
+        "message":       message,
+        "blast_radius": {
+            "source": "ai-extensions",
+            "direct_subscribers": [],
+            "note": "AI contract violation — downstream AI systems consuming this data may be affected",
+        },
+        "blame_chain": [],
+    }
+    with open(violation_log_path, "a") as f:
+        f.write(json.dumps(entry) + "\n")
+    print(f"    📝  AI violation logged → {violation_log_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="AI Contract Extensions")
     parser.add_argument("--extractions", required=True,
@@ -402,6 +444,8 @@ def main():
                         help="Output path for AI extensions report JSON")
     parser.add_argument("--baseline",    default="schema_snapshots/embedding_baselines.npz",
                         help="Path to embedding baseline file")
+    parser.add_argument("--violation-log", default="violation_log/violations.jsonl",
+                        help="Path to violation log JSONL (for writing AI violations)")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -413,6 +457,8 @@ def main():
         "run_at":     datetime.now(timezone.utc).isoformat(),
         "extensions": {},
     }
+
+    ai_violations_written = 0
 
     # ── Extension 1: Embedding Drift ──
     print("\n  Extension 1 — Embedding Drift Detection")
@@ -433,6 +479,21 @@ def main():
           f"Drift score: {drift_result.get('drift_score', 'N/A')} | "
           f"{drift_result.get('interpretation', '')[:80]}")
 
+    # Write to violation log if WARN or FAIL
+    if drift_result["status"] in ("WARN", "FAIL"):
+        severity = "HIGH" if drift_result["status"] == "FAIL" else "MEDIUM"
+        write_ai_violation(
+            check_id    = "ai-extensions.embedding_drift",
+            check_type  = "embedding_drift",
+            status      = drift_result["status"],
+            severity    = severity,
+            actual_value= f"drift_score={drift_result.get('drift_score', 'N/A')}",
+            expected    = f"drift_score < {drift_result.get('threshold', 0.15)}",
+            message     = drift_result.get("interpretation", "Embedding drift detected"),
+            violation_log_path=args.violation_log,
+        )
+        ai_violations_written += 1
+
     # ── Extension 2: Prompt Input Schema Validation ──
     print("\n  Extension 2 — Prompt Input Schema Validation")
 
@@ -447,6 +508,20 @@ def main():
     print(f"    {icon}  Week 3: {prompt_result_w3['valid']} valid, "
           f"{prompt_result_w3['quarantined']} quarantined "
           f"({prompt_result_w3['quarantine_rate']:.1%} rate)")
+
+    # Write to violation log if quarantine rate too high
+    if prompt_result_w3["status"] == "FAIL":
+        write_ai_violation(
+            check_id    = "ai-extensions.prompt_input_validation.week3",
+            check_type  = "prompt_input_validation",
+            status      = "FAIL",
+            severity    = "HIGH",
+            actual_value= f"quarantine_rate={prompt_result_w3['quarantine_rate']:.1%}",
+            expected    = "quarantine_rate < 5%",
+            message     = f"{prompt_result_w3['quarantined']} records quarantined from Week 3 extractions",
+            violation_log_path=args.violation_log,
+        )
+        ai_violations_written += 1
 
     # Week 2 verdicts
     verdicts = load_jsonl(args.verdicts)
@@ -464,7 +539,6 @@ def main():
     # ── Extension 3: LLM Output Schema Violation Rate ──
     print("\n  Extension 3 — LLM Output Schema Violation Rate")
 
-    # Week 2 verdict enum check
     print(f"    Checking overall_verdict enum in {len(verdicts)} verdict records...")
     verdict_violation = check_output_violation_rate(
         verdicts,
@@ -480,6 +554,24 @@ def main():
           f"Trend: {verdict_violation['trend']} | "
           f"{verdict_violation['interpretation'][:70]}")
 
+    # Write to violation log if WARN (rising rate)
+    if verdict_violation["status"] == "WARN":
+        write_ai_violation(
+            check_id    = "ai-extensions.output_violation_rate.verdicts",
+            check_type  = "output_violation_rate",
+            status      = "WARN",
+            severity    = "MEDIUM",
+            actual_value= f"violation_rate={verdict_violation['violation_rate']:.1%} trend={verdict_violation['trend']}",
+            expected    = "violation_rate < 2% and trend != rising",
+            message     = (
+                f"LLM output schema violation rate is {verdict_violation['violation_rate']:.1%} "
+                f"(trend: {verdict_violation['trend']}). "
+                "Rising rate signals prompt degradation or model behaviour change."
+            ),
+            violation_log_path=args.violation_log,
+        )
+        ai_violations_written += 1
+
     # Trace schema check
     if Path(args.traces).exists():
         traces = load_jsonl(args.traces)
@@ -488,6 +580,20 @@ def main():
         results["extensions"]["trace_schema_check"] = trace_result
         icon = "✅" if trace_result["status"] == "PASS" else "⚠️"
         print(f"    {icon}  Trace schema: {trace_result['interpretation'][:80]}")
+
+        # Write to violation log if trace schema violations exceed threshold
+        if trace_result["status"] in ("WARN", "FAIL"):
+            write_ai_violation(
+                check_id    = "ai-extensions.trace_schema_check",
+                check_type  = "trace_schema",
+                status      = trace_result["status"],
+                severity    = "HIGH" if trace_result["status"] == "FAIL" else "MEDIUM",
+                actual_value= f"violation_rate={trace_result['violation_rate']:.1%}",
+                expected    = "violation_rate < 2%",
+                message     = trace_result.get("interpretation", "Trace schema violations detected"),
+                violation_log_path=args.violation_log,
+            )
+            ai_violations_written += 1
     else:
         print(f"\n    ⚠  Traces file not found: {args.traces}")
         results["extensions"]["trace_schema_check"] = {
@@ -496,15 +602,14 @@ def main():
         }
 
     # ── Summary ──
-    statuses = [
-        v.get("status") for v in results["extensions"].values()
-    ]
+    statuses = [v.get("status") for v in results["extensions"].values()]
     overall = (
         "FAIL" if "FAIL" in statuses else
         "WARN" if "WARN" in statuses else
         "PASS"
     )
     results["overall_status"] = overall
+    results["violations_written_to_log"] = ai_violations_written
 
     print("\n  " + "─" * 40)
     print(f"  Overall AI Contract Status: {overall}")
@@ -513,6 +618,9 @@ def main():
                 else "⚠️" if ext_result.get("status") == "WARN"
                 else "❌")
         print(f"  {icon}  {ext_name}: {ext_result.get('status', 'UNKNOWN')}")
+
+    if ai_violations_written > 0:
+        print(f"\n  📝  {ai_violations_written} AI violation(s) written to {args.violation_log}")
 
     # Write output
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)

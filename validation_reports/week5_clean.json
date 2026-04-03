@@ -1,8 +1,10 @@
 {
-  "report_id": "d053af21-8c03-474f-b7a1-7927e8dbac77",
+  "report_id": "8bbfa851-f493-491b-b19e-e3a68a77b7f6",
   "contract_id": "week5-event-records",
   "snapshot_id": "dfb75051e4d6380e95fea72e27d5e398f362ea9174066be7d2165d0d083fdf30",
-  "run_timestamp": "2026-04-02T12:59:20.497686+00:00",
+  "run_timestamp": "2026-04-03T20:13:20.766842+00:00",
+  "mode": "AUDIT",
+  "pipeline_action": "PASS",
   "total_checks": 54,
   "passed": 54,
   "failed": 0,
@@ -657,5 +659,11 @@
       "sample_failing": [],
       "message": "payload_decision_rationale type check passed."
     }
-  ]
+  ],
+  "mode_detail": {
+    "pipeline_action": "PASS",
+    "mode": "AUDIT",
+    "blocking_checks": [],
+    "block_count": 0
+  }
 }

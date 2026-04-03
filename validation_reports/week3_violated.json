@@ -1,10 +1,12 @@
 {
-  "report_id": "39dc6730-4f3b-4fe2-a70e-8a986faec72d",
+  "report_id": "f46c6d77-9f19-44c6-a088-448da047d672",
   "contract_id": "week3-document-refinery-extractions",
   "snapshot_id": "f74054e4da356044727a10da8ff1f831bbf6925703ed8ee5dd49d1981003750d",
-  "run_timestamp": "2026-04-02T14:04:29.463367+00:00",
-  "total_checks": 33,
-  "passed": 31,
+  "run_timestamp": "2026-04-03T20:31:07.961966+00:00",
+  "mode": "ENFORCE",
+  "pipeline_action": "BLOCK",
+  "total_checks": 35,
+  "passed": 33,
   "failed": 2,
   "warned": 0,
   "errored": 0,
@@ -146,12 +148,12 @@
       "column_name": "processing_time_ms",
       "check_type": "statistical_drift",
       "status": "PASS",
-      "actual_value": "current_mean=1265.2000, z_score=0.00",
-      "expected": "z_score < 2 (baseline_mean=1265.2000, stddev=391.6605)",
+      "actual_value": "current_mean=1265.2000, z_score=0.92",
+      "expected": "z_score < 2 (baseline_mean=1958.7300, stddev=756.7178)",
       "severity": "LOW",
       "records_failing": 0,
       "sample_failing": [],
-      "message": "'processing_time_ms' statistical drift: 0.00 stddev (stable). "
+      "message": "'processing_time_ms' statistical drift: 0.92 stddev (stable). "
     },
     {
       "check_id": "week3-document-refinery-extractions.token_count_input.required",
@@ -178,6 +180,18 @@
       "message": "token_count_input type check passed."
     },
     {
+      "check_id": "week3-document-refinery-extractions.token_count_input.statistical_drift",
+      "column_name": "token_count_input",
+      "check_type": "statistical_drift",
+      "status": "PASS",
+      "actual_value": "current_mean=4000.0000, z_score=0.80",
+      "expected": "z_score < 2 (baseline_mean=5237.6900, stddev=1538.1365)",
+      "severity": "LOW",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": "'token_count_input' statistical drift: 0.80 stddev (stable). "
+    },
+    {
       "check_id": "week3-document-refinery-extractions.token_count_output.required",
       "column_name": "token_count_output",
       "check_type": "required",
@@ -200,6 +214,18 @@
       "records_failing": 0,
       "sample_failing": [],
       "message": "token_count_output type check passed."
+    },
+    {
+      "check_id": "week3-document-refinery-extractions.token_count_output.statistical_drift",
+      "column_name": "token_count_output",
+      "check_type": "statistical_drift",
+      "status": "PASS",
+      "actual_value": "current_mean=800.0000, z_score=0.52",
+      "expected": "z_score < 2 (baseline_mean=977.1000, stddev=337.8364)",
+      "severity": "LOW",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": "'token_count_output' statistical drift: 0.52 stddev (stable). "
     },
     {
       "check_id": "week3-document-refinery-extractions.extracted_at.required",
@@ -338,12 +364,12 @@
       "column_name": "extracted_fact_confidence",
       "check_type": "statistical_drift",
       "status": "FAIL",
-      "actual_value": "current_mean=75.3067, z_score=550.32",
-      "expected": "z_score < 2 (baseline_mean=0.7531, stddev=0.1355)",
+      "actual_value": "current_mean=75.3067, z_score=796.98",
+      "expected": "z_score < 2 (baseline_mean=0.8415, stddev=0.0934)",
       "severity": "HIGH",
       "records_failing": 0,
       "sample_failing": [],
-      "message": "'extracted_fact_confidence' statistical drift: 550.3 stddev drift. Was 0.7531, now 75.3067. Possible scale change!"
+      "message": "'extracted_fact_confidence' statistical drift: 797.0 stddev drift. Was 0.8415, now 75.3067. Possible scale change!"
     },
     {
       "check_id": "week3-document-refinery-extractions.extracted_fact_page_ref.required",
@@ -374,12 +400,12 @@
       "column_name": "extracted_fact_page_ref",
       "check_type": "statistical_drift",
       "status": "PASS",
-      "actual_value": "current_mean=5.4733, z_score=0.00",
-      "expected": "z_score < 2 (baseline_mean=5.4733, stddev=2.8206)",
+      "actual_value": "current_mean=5.4733, z_score=1.41",
+      "expected": "z_score < 2 (baseline_mean=22.4300, stddev=11.9910)",
       "severity": "LOW",
       "records_failing": 0,
       "sample_failing": [],
-      "message": "'extracted_fact_page_ref' statistical drift: 0.00 stddev (stable). "
+      "message": "'extracted_fact_page_ref' statistical drift: 1.41 stddev (stable). "
     },
     {
       "check_id": "week3-document-refinery-extractions.extracted_fact_source_excerpt.required",
@@ -405,5 +431,14 @@
       "sample_failing": [],
       "message": "extracted_fact_source_excerpt type check passed."
     }
-  ]
+  ],
+  "mode_detail": {
+    "pipeline_action": "BLOCK",
+    "mode": "ENFORCE",
+    "blocking_checks": [
+      "week3-document-refinery-extractions.extracted_fact_confidence.range",
+      "week3-document-refinery-extractions.extracted_fact_confidence.statistical_drift"
+    ],
+    "block_count": 2
+  }
 }

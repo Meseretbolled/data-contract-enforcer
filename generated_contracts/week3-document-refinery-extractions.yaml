@@ -6,7 +6,7 @@ info:
   version: 1.0.0
   owner: data-engineering-team
   description: Auto-generated contract for outputs/week3/extractions_violated.jsonl.
-    Generated at 2026-04-02T13:06:12.085213+00:00. Review and validate all clauses
+    Generated at 2026-04-03T20:13:21.835320+00:00. Review and validate all clauses
     before use in production.
 servers:
   local:
@@ -79,21 +79,4 @@ quality:
     - missing_count(doc_id) = 0
 lineage:
   upstream: []
-  downstream:
-  - id: file::src/week4/cartographer.py
-    description: 'Downstream: file::src/week4/cartographer.py reads from week3 table'
-    fields_consumed:
-    - doc_id
-    - extracted_facts
-    breaking_if_changed:
-    - extracted_facts.confidence
-    - doc_id
-  - id: file::src/week7/contract_enforcer.py
-    description: 'Downstream: file::src/week7/contract_enforcer.py reads from week3
-      table'
-    fields_consumed:
-    - doc_id
-    - extracted_facts
-    breaking_if_changed:
-    - extracted_facts.confidence
-    - doc_id
+  downstream: []

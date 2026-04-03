@@ -1,23 +1,22 @@
 {
   "report_metadata": {
-    "generated_at": "2026-04-02T14:22:37.123489+00:00",
+    "generated_at": "2026-04-03T20:31:08.595030+00:00",
     "generated_by": "contracts/report_generator.py",
-    "period": "2026-03-26 to 2026-04-02",
+    "period": "2026-03-27 to 2026-04-03",
     "auto_generated": true,
     "note": "This report is machine-generated from live validation data. Do not edit manually."
   },
-  "data_health_score": 40,
-  "health_narrative": "Score 40/100 \u2014 ATTENTION REQUIRED. 2 critical violation(s) detected. Downstream AI systems may be consuming corrupted data. Immediate action needed.",
+  "data_health_score": 70,
+  "health_narrative": "Score 70/100 \u2014 System is generally healthy but has 1 high-severity and 0 medium-severity issues requiring attention.",
   "violations_by_severity": {
-    "HIGH": 2,
-    "CRITICAL": 2
+    "CRITICAL": 1,
+    "HIGH": 1
   },
-  "total_violations": 4,
-  "total_violations_logged": 8,
+  "total_violations": 2,
+  "total_violations_logged": 7,
   "top_violations": [
-    "[CRITICAL] The 'codebase_root_required' field in 'week4-lineage-snapshots' failed its column_exists check. Found: column not found in data. Expected: column present. Affecting 60 record(s). Downstream systems at risk: check contract_registry/subscriptions.yaml for affected systems.",
     "[CRITICAL] The 'extracted_fact_confidence' field in 'week3-document-refinery-extractions' failed its range check. Found: min=50.0000, max=99.0000, mean=75.3067. Expected: min>=0.0, max<=1.0. Affecting 150 record(s). Downstream systems at risk: check contract_registry/subscriptions.yaml for affected systems.",
-    "[HIGH] The 'extracted_fact_page_ref' field in 'week3-document-refinery-extractions' failed its statistical_drift check. Found: current_mean=22.4300, z_score=6.01. Expected: z_score < 2 (baseline_mean=5.4733, stddev=2.8206). Affecting 0 record(s). Downstream systems at risk: check contract_registry/subscriptions.yaml for affected systems."
+    "[HIGH] The 'extracted_fact_confidence' field in 'week3-document-refinery-extractions' failed its statistical_drift check. Found: current_mean=75.3067, z_score=796.98. Expected: z_score < 2 (baseline_mean=0.8415, stddev=0.0934). Affecting 0 record(s). Downstream systems at risk: check contract_registry/subscriptions.yaml for affected systems."
   ],
   "contracts_summary": [
     {
@@ -54,24 +53,24 @@
     },
     {
       "contract_id": "week3-document-refinery-extractions",
-      "total_checks": 33,
-      "passed": 32,
-      "failed": 1,
+      "total_checks": 30,
+      "passed": 30,
+      "failed": 0,
       "warned": 0,
       "errored": 0
     },
     {
       "contract_id": "week4-lineage-snapshots",
       "total_checks": 18,
-      "passed": 17,
+      "passed": 18,
       "failed": 0,
       "warned": 0,
-      "errored": 1
+      "errored": 0
     },
     {
       "contract_id": "week3-document-refinery-extractions",
-      "total_checks": 33,
-      "passed": 31,
+      "total_checks": 35,
+      "passed": 33,
       "failed": 2,
       "warned": 0,
       "errored": 0
@@ -84,18 +83,11 @@
       "total_changes": 4,
       "breaking_changes": 0,
       "action_required": "No action required.",
+      "per_consumer_failure_mode": [],
       "plain_summary": "Contract 'week3-document-refinery-extractions': 4 schema change(s) detected (0 breaking). Verdict: BACKWARD_COMPATIBLE. No action required."
-    },
-    {
-      "contract_id": "week5-event-records",
-      "compatibility": "BREAKING",
-      "total_changes": 23,
-      "breaking_changes": 2,
-      "action_required": "BLOCK DEPLOY until migration checklist complete. See validation_reports/schema_evolution_all.json for details.",
-      "plain_summary": "Contract 'week5-event-records': 23 schema change(s) detected (2 breaking). Verdict: BREAKING. BLOCK DEPLOY until migration checklist complete. See validation_reports/schema_evolution_all.json for details."
     }
   ],
-  "total_breaking_changes": 2,
+  "total_breaking_changes": 0,
   "ai_risk_assessment": {
     "overall_status": "PASS",
     "embedding_drift": {
@@ -112,40 +104,12 @@
     "narrative": "Embedding drift baseline established on current data. First drift measurement will be available on the next run. LLM output schema violation rate is 0.0% \u2014 all verdict records conform to expected PASS/FAIL/WARN enum. LangSmith trace schema check passed: 210 traces validated, all required fields present and timestamps valid."
   },
   "recommended_actions": [
-    "URGENT: Fix CRITICAL violation in week4-lineage-snapshots. Field 'codebase_root_required' has value column not found in data but contract requires column present. Source: outputs/week4/lineage_snapshots.jsonl (produced by brownfield-cartographer). Run: python contracts/runner.py --contract generated_contracts/week4-lineage-snapshots.yaml --data outputs/ --mode ENFORCE after fix.",
+    "URGENT: Fix CRITICAL violation in week3-document-refinery-extractions. Field 'extracted_fact_confidence' has value min=50.0000, max=99.0000, mean=75.3067 but contract requires min>=0.0, max<=1.0. Source: outputs/week3/extractions.jsonl (produced by src/week3/extractor.py). Run: python contracts/runner.py --contract generated_contracts/week3-document-refinery-extractions.yaml --data outputs/ --mode ENFORCE after fix.",
     "Add contracts/runner.py as a required CI step before any data pipeline deployment. Insert: 'python contracts/runner.py --contract generated_contracts/<contract>.yaml --data outputs/<week>/ --mode ENFORCE --output validation_reports/ci_check.json' into your GitHub Actions workflow. This prevents violations from reaching production.",
     "Embedding drift baseline has been established. Run 'python contracts/ai_extensions.py --extractions outputs/week3/extractions.jsonl --verdicts outputs/week2/verdicts.jsonl --output validation_reports/ai_extensions.json' again on next data batch to detect any semantic drift from this baseline."
   ],
   "raw": {
     "all_failures": [
-      {
-        "check_id": "week3-document-refinery-extractions.extracted_fact_page_ref.statistical_drift",
-        "column_name": "extracted_fact_page_ref",
-        "check_type": "statistical_drift",
-        "status": "FAIL",
-        "actual_value": "current_mean=22.4300, z_score=6.01",
-        "expected": "z_score < 2 (baseline_mean=5.4733, stddev=2.8206)",
-        "severity": "HIGH",
-        "records_failing": 0,
-        "sample_failing": [],
-        "message": "'extracted_fact_page_ref' statistical drift: 6.0 stddev drift. Was 5.4733, now 22.4300. Possible scale change!",
-        "contract_id": "week3-document-refinery-extractions",
-        "report_file": "c3c77ead-7058-405a-984f-576c003418f6"
-      },
-      {
-        "check_id": "week4-lineage-snapshots.codebase_root_required.exists",
-        "column_name": "codebase_root_required",
-        "check_type": "column_exists",
-        "status": "ERROR",
-        "actual_value": "column not found in data",
-        "expected": "column present",
-        "severity": "CRITICAL",
-        "records_failing": 60,
-        "sample_failing": [],
-        "message": "Column 'codebase_root_required' defined in contract but not found in data. Available: ['snapshot_id', 'codebase_root', 'git_commit', 'captured_at', 'node_node_id']",
-        "contract_id": "week4-lineage-snapshots",
-        "report_file": "09032c04-2522-4306-bb5f-4baae6f143aa"
-      },
       {
         "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.range",
         "column_name": "extracted_fact_confidence",
@@ -158,40 +122,31 @@
         "sample_failing": [],
         "message": "'extracted_fact_confidence' range violation: max=99.0000 > 1.0. Likely cause: scale changed from 0.0-1.0 to 0-100.",
         "contract_id": "week3-document-refinery-extractions",
-        "report_file": "39dc6730-4f3b-4fe2-a70e-8a986faec72d"
+        "report_file": "f46c6d77-9f19-44c6-a088-448da047d672"
       },
       {
         "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.statistical_drift",
         "column_name": "extracted_fact_confidence",
         "check_type": "statistical_drift",
         "status": "FAIL",
-        "actual_value": "current_mean=75.3067, z_score=550.32",
-        "expected": "z_score < 2 (baseline_mean=0.7531, stddev=0.1355)",
+        "actual_value": "current_mean=75.3067, z_score=796.98",
+        "expected": "z_score < 2 (baseline_mean=0.8415, stddev=0.0934)",
         "severity": "HIGH",
         "records_failing": 0,
         "sample_failing": [],
-        "message": "'extracted_fact_confidence' statistical drift: 550.3 stddev drift. Was 0.7531, now 75.3067. Possible scale change!",
+        "message": "'extracted_fact_confidence' statistical drift: 797.0 stddev drift. Was 0.8415, now 75.3067. Possible scale change!",
         "contract_id": "week3-document-refinery-extractions",
-        "report_file": "39dc6730-4f3b-4fe2-a70e-8a986faec72d"
+        "report_file": "f46c6d77-9f19-44c6-a088-448da047d672"
       }
     ],
     "violation_log": [
       {
-        "injection_note": true,
-        "injected_at": "2026-04-02T13:47:19.003847+00:00",
-        "injection_type": "scale_change",
-        "description": "Confidence field multiplied by 100 (0.87 -> 87.0) to simulate 0-100 scale change violation",
-        "script": "create_violation.py",
-        "affects_contract": "week3-document-refinery-extractions",
-        "affects_field": "extracted_facts.confidence"
-      },
-      {
-        "violation_id": "26409117-f3ff-4795-8ebd-14219872f8ef",
+        "violation_id": "19bfd2de-6b30-44a2-9558-f7cfb1daed68",
         "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.range",
         "contract_id": "week3-document-refinery-extractions",
         "column_name": "extracted_fact_confidence",
         "severity": "CRITICAL",
-        "detected_at": "2026-04-02T13:47:02.593448+00:00",
+        "detected_at": "2026-04-03T20:13:22.047095+00:00",
         "actual_value": "min=50.0000, max=99.0000, mean=75.3067",
         "expected": "min>=0.0, max<=1.0",
         "records_failing": 150,
@@ -237,13 +192,33 @@
         },
         "blame_chain": [
           {
+            "commit_hash": "bb24b3afd289ac5fd05049668a4e36dcb1fc3361",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-03 22:47:09 +0300",
+            "commit_message": "Update contract enforcement modules and validation reports",
+            "rank": 1,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "32818ab7e345e0ee9bec2f42e48985997056ae0f",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-02 16:50:24 +0300",
+            "commit_message": "feat: Week 7 Data Contract Enforcer \u2014 complete implementation",
+            "rank": 2,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
+            "lineage_distance": 0
+          },
+          {
             "commit_hash": "39e4fe9d6654dddbbc4b411261bcfe91ee7adf2b",
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 23:39:26 +0300",
             "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
-            "rank": 1,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 3,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
             "lineage_distance": 0
           },
           {
@@ -251,9 +226,9 @@
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 23:27:47 +0300",
             "commit_message": "feat: all Thursday interim deliverables complete - contracts generated, violations caught",
-            "rank": 2,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 4,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
             "lineage_distance": 0
           },
           {
@@ -261,150 +236,21 @@
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 22:49:38 +0300",
             "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
-            "rank": 3,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 5,
+            "confidence_score": 0.8,
+            "days_from_violation": 2,
             "lineage_distance": 0
           }
         ],
         "source_report": "validation_reports/week3_violated.json"
       },
       {
-        "violation_id": "673b3bd7-d15d-466e-8524-45f93464f38e",
-        "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.statistical_drift",
-        "contract_id": "week3-document-refinery-extractions",
-        "column_name": "extracted_fact_confidence",
-        "severity": "HIGH",
-        "detected_at": "2026-04-02T13:47:02.626851+00:00",
-        "actual_value": "current_mean=75.3067, z_score=550.32",
-        "expected": "z_score < 2 (baseline_mean=0.7531, stddev=0.1355)",
-        "records_failing": 0,
-        "blast_radius": {
-          "source": "registry",
-          "note": "direct_subscribers from registry; transitive_nodes from lineage graph enrichment",
-          "direct_subscribers": [
-            {
-              "subscriber_id": "week4-cartographer",
-              "subscriber_team": "week4",
-              "contact": "meseret@data-contract-enforcer",
-              "validation_mode": "ENFORCE",
-              "breaking_reason": "used for node ranking; scale change (0.0-1.0 vs 0-100) breaks ordering logic silently",
-              "fields_consumed": [
-                "doc_id",
-                "extracted_facts",
-                "extraction_model"
-              ]
-            },
-            {
-              "subscriber_id": "week7-contract-enforcer",
-              "subscriber_team": "week7",
-              "contact": "meseret@data-contract-enforcer",
-              "validation_mode": "AUDIT",
-              "breaking_reason": "AI extension embedding drift baseline depends on 0.0-1.0 scale",
-              "fields_consumed": [
-                "extracted_facts.confidence",
-                "doc_id",
-                "extracted_at"
-              ]
-            }
-          ],
-          "lineage_direct_nodes": [
-            "table::extractions"
-          ],
-          "lineage_transitive_nodes": [
-            "file::src/week4/cartographer.py",
-            "file::src/week7/contract_enforcer.py",
-            "table::lineage_snapshots"
-          ],
-          "contamination_depth": 3,
-          "total_affected_systems": 5
-        },
-        "blame_chain": [
-          {
-            "commit_hash": "39e4fe9d6654dddbbc4b411261bcfe91ee7adf2b",
-            "author": "meseretbolled@gmail.com",
-            "commit_timestamp": "2026-04-01 23:39:26 +0300",
-            "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
-            "rank": 1,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
-            "lineage_distance": 0
-          },
-          {
-            "commit_hash": "31edeea38952a559822888dd47bedf67efc49946",
-            "author": "meseretbolled@gmail.com",
-            "commit_timestamp": "2026-04-01 23:27:47 +0300",
-            "commit_message": "feat: all Thursday interim deliverables complete - contracts generated, violations caught",
-            "rank": 2,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
-            "lineage_distance": 0
-          },
-          {
-            "commit_hash": "da0f6f2825dd4b72f3b99aa34c6b9be633e8c140",
-            "author": "meseretbolled@gmail.com",
-            "commit_timestamp": "2026-04-01 22:49:38 +0300",
-            "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
-            "rank": 3,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
-            "lineage_distance": 0
-          }
-        ],
-        "source_report": "validation_reports/week3_violated.json"
-      },
-      {
-        "violation_id": "d1b9988c-d375-4485-8f9b-e82cef03f050",
-        "check_id": "week4-lineage-snapshots.codebase_root_required.exists",
-        "contract_id": "week4-lineage-snapshots",
-        "column_name": "codebase_root_required",
-        "severity": "CRITICAL",
-        "detected_at": "2026-04-02T13:48:46.978759+00:00",
-        "actual_value": "column not found in data",
-        "expected": "column present",
-        "records_failing": 60,
-        "blast_radius": {
-          "source": "registry",
-          "note": "direct_subscribers from registry; transitive_nodes from lineage graph enrichment",
-          "direct_subscribers": [],
-          "lineage_direct_nodes": [
-            "table::lineage_snapshots"
-          ],
-          "lineage_transitive_nodes": [],
-          "contamination_depth": 1,
-          "total_affected_systems": 0
-        },
-        "blame_chain": [
-          {
-            "commit_hash": "39e4fe9d6654dddbbc4b411261bcfe91ee7adf2b",
-            "author": "meseretbolled@gmail.com",
-            "commit_timestamp": "2026-04-01 23:39:26 +0300",
-            "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
-            "rank": 1,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
-            "lineage_distance": 0
-          },
-          {
-            "commit_hash": "da0f6f2825dd4b72f3b99aa34c6b9be633e8c140",
-            "author": "meseretbolled@gmail.com",
-            "commit_timestamp": "2026-04-01 22:49:38 +0300",
-            "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
-            "rank": 2,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
-            "lineage_distance": 0
-          }
-        ],
-        "source_report": "validation_reports/week4_clean.json"
-      },
-      {
-        "violation_id": "c439d24a-1ae8-48e7-b43e-6cb11754a970",
+        "violation_id": "4644f2e3-cc5a-4515-b335-80360c52609f",
         "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.range",
         "contract_id": "week3-document-refinery-extractions",
         "column_name": "extracted_fact_confidence",
         "severity": "CRITICAL",
-        "detected_at": "2026-04-02T14:03:45.862870+00:00",
+        "detected_at": "2026-04-03T20:17:35.363248+00:00",
         "actual_value": "min=50.0000, max=99.0000, mean=75.3067",
         "expected": "min>=0.0, max<=1.0",
         "records_failing": 150,
@@ -450,13 +296,23 @@
         },
         "blame_chain": [
           {
+            "commit_hash": "bb24b3afd289ac5fd05049668a4e36dcb1fc3361",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-03 22:47:09 +0300",
+            "commit_message": "Update contract enforcement modules and validation reports",
+            "rank": 1,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
             "commit_hash": "32818ab7e345e0ee9bec2f42e48985997056ae0f",
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-02 16:50:24 +0300",
             "commit_message": "feat: Week 7 Data Contract Enforcer \u2014 complete implementation",
-            "rank": 1,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 2,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
             "lineage_distance": 0
           },
           {
@@ -464,9 +320,9 @@
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 23:39:26 +0300",
             "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
-            "rank": 2,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 3,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
             "lineage_distance": 0
           },
           {
@@ -474,9 +330,9 @@
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 23:27:47 +0300",
             "commit_message": "feat: all Thursday interim deliverables complete - contracts generated, violations caught",
-            "rank": 3,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 4,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
             "lineage_distance": 0
           },
           {
@@ -484,115 +340,21 @@
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 22:49:38 +0300",
             "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
-            "rank": 4,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 5,
+            "confidence_score": 0.8,
+            "days_from_violation": 2,
             "lineage_distance": 0
           }
         ],
         "source_report": "validation_reports/week3_violated.json"
       },
       {
-        "violation_id": "8d4a5bfb-cf68-4c0e-8c0d-66ee2da451be",
-        "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.statistical_drift",
-        "contract_id": "week3-document-refinery-extractions",
-        "column_name": "extracted_fact_confidence",
-        "severity": "HIGH",
-        "detected_at": "2026-04-02T14:03:45.900310+00:00",
-        "actual_value": "current_mean=75.3067, z_score=550.32",
-        "expected": "z_score < 2 (baseline_mean=0.7531, stddev=0.1355)",
-        "records_failing": 0,
-        "blast_radius": {
-          "source": "registry",
-          "note": "direct_subscribers from registry; transitive_nodes from lineage graph enrichment",
-          "direct_subscribers": [
-            {
-              "subscriber_id": "week4-cartographer",
-              "subscriber_team": "week4",
-              "contact": "meseret@data-contract-enforcer",
-              "validation_mode": "ENFORCE",
-              "breaking_reason": "used for node ranking; scale change (0.0-1.0 vs 0-100) breaks ordering logic silently",
-              "fields_consumed": [
-                "doc_id",
-                "extracted_facts",
-                "extraction_model"
-              ]
-            },
-            {
-              "subscriber_id": "week7-contract-enforcer",
-              "subscriber_team": "week7",
-              "contact": "meseret@data-contract-enforcer",
-              "validation_mode": "AUDIT",
-              "breaking_reason": "AI extension embedding drift baseline depends on 0.0-1.0 scale",
-              "fields_consumed": [
-                "extracted_facts.confidence",
-                "doc_id",
-                "extracted_at"
-              ]
-            }
-          ],
-          "lineage_direct_nodes": [
-            "table::extractions"
-          ],
-          "lineage_transitive_nodes": [
-            "file::src/week4/cartographer.py",
-            "file::src/week7/contract_enforcer.py",
-            "table::lineage_snapshots"
-          ],
-          "contamination_depth": 3,
-          "total_affected_systems": 5
-        },
-        "blame_chain": [
-          {
-            "commit_hash": "32818ab7e345e0ee9bec2f42e48985997056ae0f",
-            "author": "meseretbolled@gmail.com",
-            "commit_timestamp": "2026-04-02 16:50:24 +0300",
-            "commit_message": "feat: Week 7 Data Contract Enforcer \u2014 complete implementation",
-            "rank": 1,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
-            "lineage_distance": 0
-          },
-          {
-            "commit_hash": "39e4fe9d6654dddbbc4b411261bcfe91ee7adf2b",
-            "author": "meseretbolled@gmail.com",
-            "commit_timestamp": "2026-04-01 23:39:26 +0300",
-            "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
-            "rank": 2,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
-            "lineage_distance": 0
-          },
-          {
-            "commit_hash": "31edeea38952a559822888dd47bedf67efc49946",
-            "author": "meseretbolled@gmail.com",
-            "commit_timestamp": "2026-04-01 23:27:47 +0300",
-            "commit_message": "feat: all Thursday interim deliverables complete - contracts generated, violations caught",
-            "rank": 3,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
-            "lineage_distance": 0
-          },
-          {
-            "commit_hash": "da0f6f2825dd4b72f3b99aa34c6b9be633e8c140",
-            "author": "meseretbolled@gmail.com",
-            "commit_timestamp": "2026-04-01 22:49:38 +0300",
-            "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
-            "rank": 4,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
-            "lineage_distance": 0
-          }
-        ],
-        "source_report": "validation_reports/week3_violated.json"
-      },
-      {
-        "violation_id": "499066fc-c34f-4592-80b7-46b10d755cad",
+        "violation_id": "9d56f46a-c767-46ff-811e-30e2e76ee55e",
         "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.range",
         "contract_id": "week3-document-refinery-extractions",
         "column_name": "extracted_fact_confidence",
         "severity": "CRITICAL",
-        "detected_at": "2026-04-02T14:04:29.576404+00:00",
+        "detected_at": "2026-04-03T20:19:10.135931+00:00",
         "actual_value": "min=50.0000, max=99.0000, mean=75.3067",
         "expected": "min>=0.0, max<=1.0",
         "records_failing": 150,
@@ -638,13 +400,23 @@
         },
         "blame_chain": [
           {
+            "commit_hash": "bb24b3afd289ac5fd05049668a4e36dcb1fc3361",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-03 22:47:09 +0300",
+            "commit_message": "Update contract enforcement modules and validation reports",
+            "rank": 1,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
             "commit_hash": "32818ab7e345e0ee9bec2f42e48985997056ae0f",
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-02 16:50:24 +0300",
             "commit_message": "feat: Week 7 Data Contract Enforcer \u2014 complete implementation",
-            "rank": 1,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 2,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
             "lineage_distance": 0
           },
           {
@@ -652,9 +424,9 @@
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 23:39:26 +0300",
             "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
-            "rank": 2,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 3,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
             "lineage_distance": 0
           },
           {
@@ -662,9 +434,9 @@
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 23:27:47 +0300",
             "commit_message": "feat: all Thursday interim deliverables complete - contracts generated, violations caught",
-            "rank": 3,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 4,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
             "lineage_distance": 0
           },
           {
@@ -672,23 +444,335 @@
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 22:49:38 +0300",
             "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
-            "rank": 4,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 5,
+            "confidence_score": 0.8,
+            "days_from_violation": 2,
             "lineage_distance": 0
           }
         ],
         "source_report": "validation_reports/week3_violated.json"
       },
       {
-        "violation_id": "fb90bd50-9e37-4248-8cb5-7264f9bfdcf3",
+        "violation_id": "e2ca94ea-4df6-4402-81d2-56d788343776",
+        "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.range",
+        "contract_id": "week3-document-refinery-extractions",
+        "column_name": "extracted_fact_confidence",
+        "severity": "CRITICAL",
+        "detected_at": "2026-04-03T20:21:30.838324+00:00",
+        "actual_value": "min=50.0000, max=99.0000, mean=75.3067",
+        "expected": "min>=0.0, max<=1.0",
+        "records_failing": 150,
+        "blast_radius": {
+          "source": "registry",
+          "note": "direct_subscribers from registry; transitive_nodes from lineage graph enrichment",
+          "direct_subscribers": [
+            {
+              "subscriber_id": "week4-cartographer",
+              "subscriber_team": "week4",
+              "contact": "meseret@data-contract-enforcer",
+              "validation_mode": "ENFORCE",
+              "breaking_reason": "used for node ranking; scale change (0.0-1.0 vs 0-100) breaks ordering logic silently",
+              "fields_consumed": [
+                "doc_id",
+                "extracted_facts",
+                "extraction_model"
+              ]
+            },
+            {
+              "subscriber_id": "week7-contract-enforcer",
+              "subscriber_team": "week7",
+              "contact": "meseret@data-contract-enforcer",
+              "validation_mode": "AUDIT",
+              "breaking_reason": "AI extension embedding drift baseline depends on 0.0-1.0 scale",
+              "fields_consumed": [
+                "extracted_facts.confidence",
+                "doc_id",
+                "extracted_at"
+              ]
+            }
+          ],
+          "lineage_direct_nodes": [
+            "table::extractions"
+          ],
+          "lineage_transitive_nodes": [
+            "file::src/week4/cartographer.py",
+            "file::src/week7/contract_enforcer.py",
+            "table::lineage_snapshots"
+          ],
+          "contamination_depth": 3,
+          "total_affected_systems": 5
+        },
+        "blame_chain": [
+          {
+            "commit_hash": "bb24b3afd289ac5fd05049668a4e36dcb1fc3361",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-03 22:47:09 +0300",
+            "commit_message": "Update contract enforcement modules and validation reports",
+            "rank": 1,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "32818ab7e345e0ee9bec2f42e48985997056ae0f",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-02 16:50:24 +0300",
+            "commit_message": "feat: Week 7 Data Contract Enforcer \u2014 complete implementation",
+            "rank": 2,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "39e4fe9d6654dddbbc4b411261bcfe91ee7adf2b",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 23:39:26 +0300",
+            "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
+            "rank": 3,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "31edeea38952a559822888dd47bedf67efc49946",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 23:27:47 +0300",
+            "commit_message": "feat: all Thursday interim deliverables complete - contracts generated, violations caught",
+            "rank": 4,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "da0f6f2825dd4b72f3b99aa34c6b9be633e8c140",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 22:49:38 +0300",
+            "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
+            "rank": 5,
+            "confidence_score": 0.8,
+            "days_from_violation": 2,
+            "lineage_distance": 0
+          }
+        ],
+        "source_report": "validation_reports/week3_violated.json"
+      },
+      {
+        "violation_id": "a91bb509-66d2-4157-83d3-e936d5467171",
+        "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.range",
+        "contract_id": "week3-document-refinery-extractions",
+        "column_name": "extracted_fact_confidence",
+        "severity": "CRITICAL",
+        "detected_at": "2026-04-03T20:25:40.081417+00:00",
+        "actual_value": "min=50.0000, max=99.0000, mean=75.3067",
+        "expected": "min>=0.0, max<=1.0",
+        "records_failing": 150,
+        "blast_radius": {
+          "source": "registry",
+          "note": "direct_subscribers from registry; transitive_nodes from lineage graph enrichment",
+          "direct_subscribers": [
+            {
+              "subscriber_id": "week4-cartographer",
+              "subscriber_team": "week4",
+              "contact": "meseret@data-contract-enforcer",
+              "validation_mode": "ENFORCE",
+              "breaking_reason": "used for node ranking; scale change (0.0-1.0 vs 0-100) breaks ordering logic silently",
+              "fields_consumed": [
+                "doc_id",
+                "extracted_facts",
+                "extraction_model"
+              ]
+            },
+            {
+              "subscriber_id": "week7-contract-enforcer",
+              "subscriber_team": "week7",
+              "contact": "meseret@data-contract-enforcer",
+              "validation_mode": "AUDIT",
+              "breaking_reason": "AI extension embedding drift baseline depends on 0.0-1.0 scale",
+              "fields_consumed": [
+                "extracted_facts.confidence",
+                "doc_id",
+                "extracted_at"
+              ]
+            }
+          ],
+          "lineage_direct_nodes": [
+            "table::extractions"
+          ],
+          "lineage_transitive_nodes": [
+            "file::src/week4/cartographer.py",
+            "file::src/week7/contract_enforcer.py",
+            "table::lineage_snapshots"
+          ],
+          "contamination_depth": 3,
+          "total_affected_systems": 5
+        },
+        "blame_chain": [
+          {
+            "commit_hash": "bb24b3afd289ac5fd05049668a4e36dcb1fc3361",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-03 22:47:09 +0300",
+            "commit_message": "Update contract enforcement modules and validation reports",
+            "rank": 1,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "32818ab7e345e0ee9bec2f42e48985997056ae0f",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-02 16:50:24 +0300",
+            "commit_message": "feat: Week 7 Data Contract Enforcer \u2014 complete implementation",
+            "rank": 2,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "39e4fe9d6654dddbbc4b411261bcfe91ee7adf2b",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 23:39:26 +0300",
+            "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
+            "rank": 3,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "31edeea38952a559822888dd47bedf67efc49946",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 23:27:47 +0300",
+            "commit_message": "feat: all Thursday interim deliverables complete - contracts generated, violations caught",
+            "rank": 4,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "da0f6f2825dd4b72f3b99aa34c6b9be633e8c140",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 22:49:38 +0300",
+            "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
+            "rank": 5,
+            "confidence_score": 0.8,
+            "days_from_violation": 2,
+            "lineage_distance": 0
+          }
+        ],
+        "source_report": "validation_reports/week3_violated.json"
+      },
+      {
+        "violation_id": "21978ecc-0f15-4342-b89d-ace79525a9a3",
+        "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.range",
+        "contract_id": "week3-document-refinery-extractions",
+        "column_name": "extracted_fact_confidence",
+        "severity": "CRITICAL",
+        "detected_at": "2026-04-03T20:31:08.513609+00:00",
+        "actual_value": "min=50.0000, max=99.0000, mean=75.3067",
+        "expected": "min>=0.0, max<=1.0",
+        "records_failing": 150,
+        "blast_radius": {
+          "source": "registry",
+          "note": "direct_subscribers from registry; transitive_nodes from lineage graph enrichment",
+          "direct_subscribers": [
+            {
+              "subscriber_id": "week4-cartographer",
+              "subscriber_team": "week4",
+              "contact": "meseret@data-contract-enforcer",
+              "validation_mode": "ENFORCE",
+              "breaking_reason": "used for node ranking; scale change (0.0-1.0 vs 0-100) breaks ordering logic silently",
+              "fields_consumed": [
+                "doc_id",
+                "extracted_facts",
+                "extraction_model"
+              ]
+            },
+            {
+              "subscriber_id": "week7-contract-enforcer",
+              "subscriber_team": "week7",
+              "contact": "meseret@data-contract-enforcer",
+              "validation_mode": "AUDIT",
+              "breaking_reason": "AI extension embedding drift baseline depends on 0.0-1.0 scale",
+              "fields_consumed": [
+                "extracted_facts.confidence",
+                "doc_id",
+                "extracted_at"
+              ]
+            }
+          ],
+          "lineage_direct_nodes": [
+            "table::extractions"
+          ],
+          "lineage_transitive_nodes": [
+            "file::src/week4/cartographer.py",
+            "file::src/week7/contract_enforcer.py",
+            "table::lineage_snapshots"
+          ],
+          "contamination_depth": 3,
+          "total_affected_systems": 5
+        },
+        "blame_chain": [
+          {
+            "commit_hash": "bb24b3afd289ac5fd05049668a4e36dcb1fc3361",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-03 22:47:09 +0300",
+            "commit_message": "Update contract enforcement modules and validation reports",
+            "rank": 1,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "32818ab7e345e0ee9bec2f42e48985997056ae0f",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-02 16:50:24 +0300",
+            "commit_message": "feat: Week 7 Data Contract Enforcer \u2014 complete implementation",
+            "rank": 2,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "39e4fe9d6654dddbbc4b411261bcfe91ee7adf2b",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 23:39:26 +0300",
+            "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
+            "rank": 3,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "31edeea38952a559822888dd47bedf67efc49946",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 23:27:47 +0300",
+            "commit_message": "feat: all Thursday interim deliverables complete - contracts generated, violations caught",
+            "rank": 4,
+            "confidence_score": 0.8,
+            "days_from_violation": 2,
+            "lineage_distance": 0
+          },
+          {
+            "commit_hash": "da0f6f2825dd4b72f3b99aa34c6b9be633e8c140",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-01 22:49:38 +0300",
+            "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
+            "rank": 5,
+            "confidence_score": 0.8,
+            "days_from_violation": 2,
+            "lineage_distance": 0
+          }
+        ],
+        "source_report": "validation_reports/week3_violated.json"
+      },
+      {
+        "violation_id": "58799612-3123-491d-bb4c-234418b611e5",
         "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.statistical_drift",
         "contract_id": "week3-document-refinery-extractions",
         "column_name": "extracted_fact_confidence",
         "severity": "HIGH",
-        "detected_at": "2026-04-02T14:04:29.606722+00:00",
-        "actual_value": "current_mean=75.3067, z_score=550.32",
-        "expected": "z_score < 2 (baseline_mean=0.7531, stddev=0.1355)",
+        "detected_at": "2026-04-03T20:31:08.534751+00:00",
+        "actual_value": "current_mean=75.3067, z_score=796.98",
+        "expected": "z_score < 2 (baseline_mean=0.8415, stddev=0.0934)",
         "records_failing": 0,
         "blast_radius": {
           "source": "registry",
@@ -732,13 +816,23 @@
         },
         "blame_chain": [
           {
+            "commit_hash": "bb24b3afd289ac5fd05049668a4e36dcb1fc3361",
+            "author": "meseretbolled@gmail.com",
+            "commit_timestamp": "2026-04-03 22:47:09 +0300",
+            "commit_message": "Update contract enforcement modules and validation reports",
+            "rank": 1,
+            "confidence_score": 1.0,
+            "days_from_violation": 0,
+            "lineage_distance": 0
+          },
+          {
             "commit_hash": "32818ab7e345e0ee9bec2f42e48985997056ae0f",
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-02 16:50:24 +0300",
             "commit_message": "feat: Week 7 Data Contract Enforcer \u2014 complete implementation",
-            "rank": 1,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 2,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
             "lineage_distance": 0
           },
           {
@@ -746,9 +840,9 @@
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 23:39:26 +0300",
             "commit_message": "feat: downstream consumers found, all contracts clean, violations caught",
-            "rank": 2,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 3,
+            "confidence_score": 0.9,
+            "days_from_violation": 1,
             "lineage_distance": 0
           },
           {
@@ -756,9 +850,9 @@
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 23:27:47 +0300",
             "commit_message": "feat: all Thursday interim deliverables complete - contracts generated, violations caught",
-            "rank": 3,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 4,
+            "confidence_score": 0.8,
+            "days_from_violation": 2,
             "lineage_distance": 0
           },
           {
@@ -766,9 +860,9 @@
             "author": "meseretbolled@gmail.com",
             "commit_timestamp": "2026-04-01 22:49:38 +0300",
             "commit_message": "Initial commit: Week 7 Data Contract Enforcer - Thursday interim submission",
-            "rank": 4,
-            "confidence_score": 1.0,
-            "days_from_violation": 0,
+            "rank": 5,
+            "confidence_score": 0.8,
+            "days_from_violation": 2,
             "lineage_distance": 0
           }
         ],

@@ -324,12 +324,23 @@ def schema_changes_summary(evo_report: dict) -> list:
             f"See validation_reports/schema_evolution_all.json for details."
         )
 
+        # Per-consumer failure mode analysis (spec requirement)
+        per_consumer = []
+        for change in report.get("breaking_details", []):
+            per_consumer.append({
+                "field":         change.get("field", "unknown"),
+                "change_type":   change.get("change_type", "unknown"),
+                "failure_mode":  change.get("description", ""),
+                "required_action": change.get("required_action", ""),
+            })
+
         summaries.append({
             "contract_id":         contract_id,
             "compatibility":       verdict,
             "total_changes":       total,
             "breaking_changes":    breaking,
             "action_required":     action_needed,
+            "per_consumer_failure_mode": per_consumer,
             "plain_summary": (
                 f"Contract '{contract_id}': {total} schema change(s) detected "
                 f"({breaking} breaking). Verdict: {verdict}. {action_needed}"
