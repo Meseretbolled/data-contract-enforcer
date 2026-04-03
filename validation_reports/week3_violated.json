@@ -1,8 +1,8 @@
 {
-  "report_id": "122fb22b-6ad1-4e45-8bee-5edde03228b7",
+  "report_id": "02d94f47-9fab-4935-a79d-b13cbc213e59",
   "contract_id": "week3-document-refinery-extractions",
   "snapshot_id": "f74054e4da356044727a10da8ff1f831bbf6925703ed8ee5dd49d1981003750d",
-  "run_timestamp": "2026-04-03T21:49:59.226254+00:00",
+  "run_timestamp": "2026-04-03T21:50:28.146311+00:00",
   "mode": "ENFORCE",
   "pipeline_action": "BLOCK",
   "total_checks": 35,

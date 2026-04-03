@@ -1,8 +1,8 @@
 {
-  "report_id": "367d9c34-717c-49d7-a811-74ed6624c49a",
+  "report_id": "cab68b93-d227-49c1-847f-b0104a4a0685",
   "contract_id": "week3-document-refinery-extractions",
   "snapshot_id": "648f953a3acbcc8ef588f536d0884f952263b59f5aa4deb147bb75cf818257df",
-  "run_timestamp": "2026-04-03T21:49:58.852792+00:00",
+  "run_timestamp": "2026-04-03T21:50:27.756798+00:00",
   "mode": "AUDIT",
   "pipeline_action": "PASS",
   "total_checks": 35,

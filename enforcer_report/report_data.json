@@ -1,6 +1,6 @@
 {
   "report_metadata": {
-    "generated_at": "2026-04-03T21:49:59.348882+00:00",
+    "generated_at": "2026-04-03T21:50:28.284030+00:00",
     "generated_by": "contracts/report_generator.py",
     "period": "2026-03-27 to 2026-04-03",
     "auto_generated": true,
@@ -153,7 +153,7 @@
         "sample_failing": [],
         "message": "'extracted_fact_confidence' range violation: max=99.0000 > 1.0. Likely cause: scale changed from 0.0-1.0 to 0-100.",
         "contract_id": "week3-document-refinery-extractions",
-        "report_file": "122fb22b-6ad1-4e45-8bee-5edde03228b7"
+        "report_file": "02d94f47-9fab-4935-a79d-b13cbc213e59"
       },
       {
         "check_id": "week3-document-refinery-extractions.extracted_fact_confidence.statistical_drift",
@@ -167,7 +167,7 @@
         "sample_failing": [],
         "message": "'extracted_fact_confidence' statistical drift: 797.0 stddev drift. Was 0.8415, now 75.3067. Possible scale change!",
         "contract_id": "week3-document-refinery-extractions",
-        "report_file": "122fb22b-6ad1-4e45-8bee-5edde03228b7"
+        "report_file": "02d94f47-9fab-4935-a79d-b13cbc213e59"
       }
     ],
     "violation_log": [

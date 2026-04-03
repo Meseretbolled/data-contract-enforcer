@@ -2,7 +2,7 @@ version: 2
 models:
 - name: week3_document_refinery_extractions
   description: Auto-generated contract for outputs/week3/extractions.jsonl. Generated
-    at 2026-04-03T21:29:46.898644+00:00. Review and validate all clauses before use
+    at 2026-04-03T21:50:15.252913+00:00. Review and validate all clauses before use
     in production.
   columns:
   - name: doc_id
@@ -43,6 +43,10 @@ models:
   - name: extracted_fact_text
     tests:
     - not_null
+    description: This field contains the text extracted from a document by a document
+      refinery extraction model, representing a fact or piece of information found
+      in the source document.
+    llm_business_rule: The extracted text must be a non-empty string.
   - name: extracted_fact_confidence
     tests:
     - not_null
@@ -59,3 +63,6 @@ models:
   - name: extracted_fact_source_excerpt
     tests:
     - not_null
+    description: This field contains a short excerpt or summary of a fact that was
+      extracted from the source document.
+    llm_business_rule: The value must be a non-empty string.
