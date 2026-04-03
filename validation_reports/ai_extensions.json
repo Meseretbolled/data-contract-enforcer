@@ -1,14 +1,15 @@
 {
-  "run_id": "b46156d4-1ad6-4d6f-b6a3-aaf0d1cc3c29",
-  "run_at": "2026-04-02T14:21:47.190551+00:00",
+  "run_id": "4b7d999a-bbb4-4d2c-acc5-39a9acf1444b",
+  "run_at": "2026-04-02T19:33:50.004102+00:00",
   "extensions": {
     "embedding_drift": {
-      "status": "BASELINE_SET",
+      "status": "PASS",
       "drift_score": 0.0,
       "threshold": 0.15,
+      "cosine_similarity": 1.0,
       "sample_size": 100,
-      "message": "Baseline established from current data. Run again to detect drift.",
-      "interpretation": "First run \u2014 baseline saved."
+      "interpretation": "Semantic content is stable (drift=0.0000 < threshold=0.15).",
+      "baseline_path": "schema_snapshots/embedding_baselines.npz"
     },
     "prompt_input_validation_week3": {
       "status": "PASS",

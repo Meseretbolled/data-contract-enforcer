@@ -1,21 +1,3 @@
-"""
-contracts/ai_extensions.py — AI Contract Extensions
-=====================================================
-Three AI-specific contract checks not covered by standard data contracts:
-
-  Extension 1: Embedding Drift Detection
-  Extension 2: Prompt Input Schema Validation
-  Extension 3: LLM Output Schema Violation Rate
-
-Usage
------
-python contracts/ai_extensions.py \
-    --extractions outputs/week3/extractions.jsonl \
-    --verdicts    outputs/week2/verdicts.jsonl \
-    --traces      outputs/traces/runs.jsonl \
-    --output      validation_reports/ai_extensions.json
-"""
-
 import argparse
 import json
 import os

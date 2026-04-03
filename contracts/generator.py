@@ -1,515 +1,568 @@
-
 import argparse
 import json
-import glob
-from datetime import datetime, timezone, timedelta
+import re
+import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
+import pandas as pd
 import yaml
 
 
-# ──────────────────────────────────────────────
-# Severity deductions for health score
-# ──────────────────────────────────────────────
-SEVERITY_DEDUCTIONS = {
-    "CRITICAL": 20,
-    "HIGH":     10,
-    "MEDIUM":    5,
-    "LOW":       1,
-    "WARNING":   2,
-}
+# ── Utilities ──────────────────────────────────────────────────────────────────
+
+def load_jsonl(path: str) -> list[dict]:
+    """Load every non-empty line from a JSONL file into a list of dicts."""
+    records = []
+    with open(path, encoding="utf-8") as fh:
+        for lineno, line in enumerate(fh, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError as exc:
+                print(f"  ⚠  Skipping malformed line {lineno}: {exc}")
+    return records
 
 
-# ──────────────────────────────────────────────
-# Data loaders
-# ──────────────────────────────────────────────
-
-def load_all_validation_reports(reports_dir: str = "validation_reports") -> list:
-    """Load all validation report JSONs from the reports directory."""
-    reports = []
-    for path in glob.glob(f"{reports_dir}/*.json"):
-        # Skip schema evolution and ai_extensions reports
-        if any(x in path for x in ["schema_evolution", "ai_extensions"]):
-            continue
-        try:
-            with open(path) as f:
-                reports.append(json.load(f))
-        except Exception:
-            pass
-    return reports
+def infer_json_type(dtype_str: str) -> str:
+    """Map a pandas dtype string to a JSON Schema type string."""
+    return {
+        "float64": "number",
+        "float32": "number",
+        "int64":   "integer",
+        "int32":   "integer",
+        "bool":    "boolean",
+    }.get(dtype_str, "string")
 
 
-def load_violation_log(violation_path: str = "violation_log/violations.jsonl") -> list:
-    """Load all violation log entries."""
-    violations = []
-    vpath = Path(violation_path)
-    if vpath.exists():
-        with open(vpath) as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    try:
-                        violations.append(json.loads(line))
-                    except Exception:
-                        pass
-    return violations
+def now_iso() -> str:
+    """Return current UTC time as ISO 8601 string. No deprecation warnings."""
+    return datetime.now(timezone.utc).isoformat()
 
 
-def load_ai_extensions(ai_path: str = "validation_reports/ai_extensions.json") -> dict:
-    """Load AI extensions report."""
-    if Path(ai_path).exists():
-        with open(ai_path) as f:
-            return json.load(f)
-    return {}
+def now_stamp() -> str:
+    """Return current UTC time as YYYYMMDD_HHMMSS for filenames."""
+    return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
 
-def load_registry(registry_path: str = "contract_registry/subscriptions.yaml") -> dict:
-    """Load contract registry."""
-    if Path(registry_path).exists():
-        with open(registry_path) as f:
-            return yaml.safe_load(f)
-    return {}
-
-
-def load_schema_evolution(evo_path: str = "validation_reports/schema_evolution_all.json") -> dict:
-    """Load schema evolution report."""
-    if Path(evo_path).exists():
-        with open(evo_path) as f:
-            return json.load(f)
-    return {}
-
-
-# ──────────────────────────────────────────────
-# Health score computation
-# ──────────────────────────────────────────────
-
-def compute_health_score(reports: list) -> tuple:
+def _looks_like_uuid(sample_values: list) -> bool:
     """
-    Compute data health score 0-100.
-    Formula: 100 - sum(deductions per FAIL/ERROR by severity)
-    Returns (score, all_failures)
+    Return True only if the majority of sample values look like real UUIDs.
+    Prevents false positives like 'user_0', 'user_1' getting format:uuid
+    just because their column name ends in '_id'.
     """
-    all_failures = []
-    for report in reports:
-        for result in report.get("results", []):
-            if result.get("status") in ("FAIL", "ERROR"):
-                all_failures.append({
-                    **result,
-                    "contract_id": report.get("contract_id", "unknown"),
-                    "report_file": report.get("report_id", "unknown"),
+    pat = re.compile(
+        r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        re.IGNORECASE,
+    )
+    if not sample_values:
+        return False
+    matches = sum(1 for v in sample_values if pat.match(str(v)))
+    return matches >= len(sample_values) * 0.8
+
+
+# ── Step 1 — Flatten nested JSONL to a flat DataFrame ─────────────────────────
+
+def flatten_records(records: list[dict]) -> pd.DataFrame:
+    """
+    Explode the first list-valued field of each record into one row per item.
+
+    Example
+    -------
+    Input : {"doc_id": "abc", "extracted_facts": [{"confidence": 0.9}, ...]}
+    Output: rows  {"doc_id": "abc", "extracted_fact_confidence": 0.9, ...}
+
+    Top-level dicts are flattened with underscore notation.
+    Nested lists inside the exploded items are dropped (too deep).
+    """
+    rows: list[dict] = []
+
+    for record in records:
+        base:   dict = {}
+        arrays: dict = {}
+
+        for key, val in record.items():
+            if isinstance(val, list):
+                arrays[key] = val
+            elif isinstance(val, dict):
+                for sub_k, sub_v in val.items():
+                    if not isinstance(sub_v, (list, dict)):
+                        base[f"{key}_{sub_k}"] = sub_v
+            else:
+                base[key] = val
+
+        if arrays:
+            primary_key = next(iter(arrays))
+            singular    = primary_key.rstrip("s")   # extracted_facts -> extracted_fact
+            for item in arrays[primary_key]:
+                if isinstance(item, dict):
+                    row = dict(base)
+                    for k, v in item.items():
+                        if not isinstance(v, (list, dict)):
+                            row[f"{singular}_{k}"] = v
+                    rows.append(row)
+                else:
+                    rows.append(dict(base))
+        else:
+            rows.append(base)
+
+    if not rows:
+        raise ValueError("No rows extracted — check that the JSONL file is non-empty.")
+
+    return pd.DataFrame(rows)
+
+
+# ── Step 2 — Statistical profiling per column ─────────────────────────────────
+
+def profile_column(series: pd.Series, col_name: str) -> dict:
+    """
+    Compute structural and statistical properties of a single column.
+    Emits loud warnings for confidence columns that look wrong.
+    """
+    profile: dict = {
+        "name":          col_name,
+        "dtype":         str(series.dtype),
+        "null_fraction": float(series.isna().mean()),
+        "cardinality":   int(series.nunique()),
+        "sample_values": [str(v) for v in series.dropna().unique()[:5].tolist()],
+    }
+
+    if pd.api.types.is_numeric_dtype(series):
+        clean = series.dropna()
+        if len(clean) > 0:
+            profile["stats"] = {
+                "min":    float(clean.min()),
+                "max":    float(clean.max()),
+                "mean":   float(clean.mean()),
+                "p25":    float(clean.quantile(0.25)),
+                "p50":    float(clean.quantile(0.50)),
+                "p75":    float(clean.quantile(0.75)),
+                "p95":    float(clean.quantile(0.95)),
+                "p99":    float(clean.quantile(0.99)),
+                "stddev": float(clean.std()),
+            }
+            if "confidence" in col_name:
+                if clean.max() > 1.0:
+                    print(
+                        f"  ⚠  ALERT: '{col_name}' max={clean.max():.2f} — "
+                        f"looks like 0-100 scale, not 0.0-1.0!"
+                    )
+                elif clean.mean() > 0.99:
+                    print(f"  ⚠  '{col_name}' mean={clean.mean():.4f} — possibly clamped at 1.0")
+                elif clean.mean() < 0.01:
+                    print(f"  ⚠  '{col_name}' mean={clean.mean():.4f} — possibly all-zero / broken")
+
+    return profile
+
+
+# ── Step 3 — Translate a profile to a Bitol contract clause ───────────────────
+
+# Columns that should NEVER be treated as enums even if low cardinality
+_NEVER_ENUM = {"text", "excerpt", "path", "hash", "model", "service", "version"}
+
+
+def profile_to_clause(profile: dict) -> dict:
+    """
+    Apply mapping rules to convert a column profile into a contract clause dict.
+
+    Rules (in priority order)
+    -------------------------
+    1. confidence in name + numeric         ->  minimum:0.0, maximum:1.0
+    2. name ends with _id + UUID values     ->  format:uuid
+    3. name ends with _at                   ->  format:date-time
+    4. low-cardinality string (safe cols)   ->  enum:[...]
+    5. numeric with stats                   ->  description with observed range
+    """
+    json_type = infer_json_type(profile["dtype"])
+    clause: dict = {
+        "type":     json_type,
+        "required": profile["null_fraction"] == 0.0,
+    }
+
+    # Rule 1 — confidence range (most important clause in the whole project)
+    if "confidence" in profile["name"] and json_type == "number":
+        clause["minimum"]     = 0.0
+        clause["maximum"]     = 1.0
+        clause["description"] = (
+            "Confidence score. MUST remain in 0.0-1.0 float range. "
+            "A value of 0.87 means 87% confidence. "
+            "BREAKING CHANGE if converted to integer 0-100 percentage scale — "
+            "all downstream threshold comparisons will silently produce wrong results."
+        )
+
+    # Rule 2 — UUID format (only if values actually look like UUIDs)
+    elif (
+        profile["name"].endswith("_id")
+        and _looks_like_uuid(profile["sample_values"])
+    ):
+        clause["format"]      = "uuid"
+        clause["description"] = (
+            f"Unique identifier for "
+            f"{profile['name'].replace('_id', '').replace('_', ' ')}. UUIDv4."
+        )
+
+    # Rule 3 — timestamp format
+    elif profile["name"].endswith("_at"):
+        clause["format"]      = "date-time"
+        clause["description"] = "ISO 8601 timestamp in UTC (Z suffix required)."
+
+    # Rule 4 — low-cardinality enum (exclude free-text, hashes, paths etc.)
+    elif (
+        json_type == "string"
+        and 2 <= profile["cardinality"] <= 8
+        and profile["cardinality"] == len(profile["sample_values"])
+        and not any(skip in profile["name"] for skip in _NEVER_ENUM)
+    ):
+        clause["enum"]        = sorted(profile["sample_values"])
+        clause["description"] = f"Enumerated value. Allowed: {clause['enum']}."
+
+    # Rule 5 — numeric description with observed range
+    if "stats" in profile and "description" not in clause:
+        s = profile["stats"]
+        clause["description"] = (
+            f"Observed range [{s['min']:.3f}, {s['max']:.3f}], "
+            f"mean={s['mean']:.3f}, stddev={s['stddev']:.3f}."
+        )
+
+    return clause
+
+
+# ── Step 4 — Load lineage context from Week 4 snapshot ────────────────────────
+
+def load_downstream_consumers(lineage_path: str | None, contract_id: str) -> list[dict]:
+    """
+    Read the most recent Week 4 lineage snapshot and find nodes that
+    consume the table produced by this contract's system.
+
+    Searches all four edge patterns:
+    1. tgt in our_nodes + READS/CONSUMES  -> src reads from us
+    2. src in our_nodes + WRITES/PRODUCES -> we write to tgt
+    3. src in our_nodes + READS           -> our table is source of READS edge
+    4. tgt in our_nodes + PRODUCES        -> someone produces into our table
+    """
+    if not lineage_path or not Path(lineage_path).exists():
+        print("  i  No lineage file found — downstream consumers left empty.")
+        return []
+
+    try:
+        records = load_jsonl(lineage_path)
+        if not records:
+            return []
+
+        snapshot = records[-1]
+        system   = contract_id.split("-")[0]   # "week3" from "week3-document-refinery-..."
+        edges    = snapshot.get("edges", [])
+        nodes    = snapshot.get("nodes", [])
+
+        # ── Build set of node IDs belonging to our system ──────────
+        our_nodes: set = set()
+
+        # Match by node_id or path containing system name
+        for node in nodes:
+            nid  = node.get("node_id", "")
+            path = node.get("metadata", {}).get("path", "")
+            if system in nid or system in path:
+                our_nodes.add(nid)
+
+        # Always include the known table node for each system
+        table_map = {
+            "week3": "table::extractions",
+            "week5": "table::events",
+        }
+        if system in table_map:
+            our_nodes.add(table_map[system])
+
+        print(f"  🗺   Our system nodes : {our_nodes}")
+
+        # ── Find downstream consumers via all edge patterns ─────────
+        consumers: list[dict] = []
+
+        for edge in edges:
+            src = edge.get("source", "")
+            tgt = edge.get("target", "")
+            rel = edge.get("relationship", "")
+
+            # Pattern 1: someone READS/CONSUMES from our node (our node is target)
+            # e.g. week4/cartographer.py --READS--> table::extractions  (wrong direction)
+            if tgt in our_nodes and rel in ("READS", "CONSUMES"):
+                consumers.append({
+                    "id":                  src,
+                    "description":         f"Downstream: reads {system} output via {rel}",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
+                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
                 })
 
-    score = 100
-    for failure in all_failures:
-        severity  = failure.get("severity", "LOW")
-        deduction = SEVERITY_DEDUCTIONS.get(severity, 1)
-        score    -= deduction
+            # Pattern 2: our node WRITES/PRODUCES to somewhere (our node is source)
+            # e.g. file::src/week3/extractor.py --WRITES--> table::extractions
+            # Skip if target is also our own node
+            if src in our_nodes and rel in ("WRITES", "PRODUCES") and tgt not in our_nodes:
+                consumers.append({
+                    "id":                  tgt,
+                    "description":         f"Downstream: receives {system} data via {rel}",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
+                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
+                })
 
-    return max(0, min(100, score)), all_failures
+            # Pattern 3: our TABLE is SOURCE of a READS edge
+            # e.g. table::extractions --READS--> file::src/week4/cartographer.py
+            # This is how our lineage file is structured
+            if src in our_nodes and rel == "READS":
+                consumers.append({
+                    "id":                  tgt,
+                    "description":         f"Downstream: {tgt} reads from {system} table",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
+                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
+                })
 
+            # Pattern 4: our node is target of PRODUCES edge
+            if tgt in our_nodes and rel == "PRODUCES":
+                consumers.append({
+                    "id":                  src,
+                    "description":         f"Downstream: {src} produces into {system} table",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
+                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
+                })
 
-# ──────────────────────────────────────────────
-# Plain language violation descriptions
-# ──────────────────────────────────────────────
+        # ── Deduplicate by id ───────────────────────────────────────
+        seen:   set  = set()
+        unique: list = []
+        for c in consumers:
+            if c["id"] not in seen:
+                seen.add(c["id"])
+                unique.append(c)
 
-def plain_language_violation(result: dict, registry: dict) -> str:
-    """
-    Convert a technical violation result into plain English.
-    Non-engineers must be able to read this and know what to do.
-    """
-    contract_id  = result.get("contract_id", "unknown")
-    column_name  = result.get("column_name", result.get("check_id", "unknown"))
-    check_type   = result.get("check_type", "check")
-    actual       = result.get("actual_value", "unknown")
-    expected     = result.get("expected", "unknown")
-    records_fail = result.get("records_failing", "unknown")
-    severity     = result.get("severity", "UNKNOWN")
+        print(f"  🔗  {len(unique)} downstream consumer(s) found in lineage.")
+        return unique
 
-    # Find affected subscribers from registry
-    subscribers = []
-    for sub in registry.get("subscriptions", []):
-        if sub.get("contract_id") == contract_id:
-            for bf in sub.get("breaking_fields", []):
-                if bf.get("field", "").replace(".", "_") in column_name.replace(".", "_"):
-                    subscribers.append(sub["subscriber_id"])
-                    break
-
-    sub_str = (", ".join(subscribers) if subscribers
-               else "check contract_registry/subscriptions.yaml for affected systems")
-
-    return (
-        f"[{severity}] The '{column_name}' field in '{contract_id}' failed its "
-        f"{check_type} check. "
-        f"Found: {actual}. Expected: {expected}. "
-        f"Affecting {records_fail} record(s). "
-        f"Downstream systems at risk: {sub_str}."
-    )
-
-
-# ──────────────────────────────────────────────
-# Recommended actions
-# ──────────────────────────────────────────────
-
-def generate_recommendations(all_failures: list, ai_report: dict, evo_report: dict) -> list:
-    """
-    Generate 3 prioritised, specific recommended actions.
-    Each action must be specific enough to open a ticket without follow-up questions.
-    """
-    recommendations = []
-
-    # Priority 1: Critical failures
-    critical = [f for f in all_failures if f.get("severity") == "CRITICAL"]
-    if critical:
-        top = critical[0]
-        contract_id = top.get("contract_id", "unknown")
-        column      = top.get("column_name", "unknown")
-        actual      = top.get("actual_value", "unknown")
-
-        # Map contract to source file
-        source_files = {
-            "week3-document-refinery-extractions": "outputs/week3/extractions.jsonl (produced by src/week3/extractor.py)",
-            "week5-event-records":                 "outputs/week5/events.jsonl (produced by apex-ledger event simulator)",
-            "week2-verdict-records":               "outputs/week2/verdicts.jsonl (produced by automaton-auditor)",
-            "week4-lineage-snapshots":             "outputs/week4/lineage_snapshots.jsonl (produced by brownfield-cartographer)",
-        }
-        source = source_files.get(contract_id, f"outputs/{contract_id.split('-')[0]}/")
-
-        recommendations.append(
-            f"URGENT: Fix CRITICAL violation in {contract_id}. "
-            f"Field '{column}' has value {actual} but contract requires {top.get('expected', 'see contract')}. "
-            f"Source: {source}. "
-            f"Run: python contracts/runner.py --contract generated_contracts/{contract_id}.yaml "
-            f"--data outputs/ --mode ENFORCE after fix."
-        )
-
-    # Priority 2: Add CI enforcement
-    if all_failures:
-        recommendations.append(
-            "Add contracts/runner.py as a required CI step before any data pipeline deployment. "
-            "Insert: 'python contracts/runner.py --contract generated_contracts/<contract>.yaml "
-            "--data outputs/<week>/ --mode ENFORCE --output validation_reports/ci_check.json' "
-            "into your GitHub Actions workflow. This prevents violations from reaching production."
-        )
-    else:
-        recommendations.append(
-            "All contracts currently passing. Schedule monthly baseline refresh: "
-            "run 'python contracts/generator.py' on fresh data for each contract "
-            "to update statistical thresholds. Set calendar reminder for first of each month."
-        )
-
-    # Priority 3: Schema evolution or AI risk
-    ai_extensions = ai_report.get("extensions", {})
-    drift = ai_extensions.get("embedding_drift", {})
-    if drift.get("status") == "FAIL":
-        recommendations.append(
-            f"URGENT: Embedding drift detected (score={drift.get('drift_score')}). "
-            "The semantic content of extracted facts has shifted significantly. "
-            "Investigate: (1) check if extraction model changed, "
-            "(2) compare recent source documents to baseline corpus, "
-            "(3) run python contracts/ai_extensions.py to get current drift score, "
-            "(4) if intentional domain shift, re-establish baseline by deleting "
-            "schema_snapshots/embedding_baselines.npz and re-running ai_extensions.py."
-        )
-    elif drift.get("status") == "BASELINE_SET":
-        recommendations.append(
-            "Embedding drift baseline has been established. Run "
-            "'python contracts/ai_extensions.py --extractions outputs/week3/extractions.jsonl "
-            "--verdicts outputs/week2/verdicts.jsonl --output validation_reports/ai_extensions.json' "
-            "again on next data batch to detect any semantic drift from this baseline."
-        )
-    else:
-        evo_breaking = evo_report.get("total_breaking", 0)
-        if evo_breaking > 0:
-            recommendations.append(
-                f"Schema evolution detected {evo_breaking} breaking change(s). "
-                "Review validation_reports/schema_evolution_all.json for migration checklists. "
-                "Notify all registry subscribers listed in contract_registry/subscriptions.yaml "
-                "before deploying any schema changes to production."
-            )
-        else:
-            recommendations.append(
-                "All AI contract checks passing. Consider expanding embedding drift monitoring "
-                "to Week 5 event payloads by adding event payload text fields to ai_extensions.py. "
-                "This will catch semantic drift in loan decision rationale text."
-            )
-
-    return recommendations[:3]
+    except Exception as exc:
+        print(f"  ⚠  Could not read lineage file: {exc}")
+        return []
 
 
-# ──────────────────────────────────────────────
-# AI risk assessment
-# ──────────────────────────────────────────────
+# ── Step 5 — Assemble the full Bitol contract dict ────────────────────────────
 
-def ai_risk_assessment(ai_report: dict) -> dict:
-    """Generate plain-language AI risk assessment from extension results."""
-    extensions = ai_report.get("extensions", {})
-
-    drift        = extensions.get("embedding_drift", {})
-    verdict_viol = extensions.get("output_violation_rate_verdicts", {})
-    trace_check  = extensions.get("trace_schema_check", {})
-
-    drift_score    = drift.get("drift_score", "N/A")
-    drift_status   = drift.get("status", "UNKNOWN")
-    violation_rate = verdict_viol.get("violation_rate", "N/A")
-    viol_trend     = verdict_viol.get("trend", "unknown")
-    trace_status   = trace_check.get("status", "UNKNOWN")
-
-    overall_ai_status = ai_report.get("overall_status", "UNKNOWN")
-
-    narrative = []
-
-    if drift_status == "BASELINE_SET":
-        narrative.append(
-            "Embedding drift baseline established on current data. "
-            "First drift measurement will be available on the next run."
-        )
-    elif drift_status == "PASS":
-        narrative.append(
-            f"Semantic content of extracted facts is stable (drift score: {drift_score}). "
-            "No evidence of domain shift or model behaviour change."
-        )
-    elif drift_status == "FAIL":
-        narrative.append(
-            f"⚠ ALERT: Significant embedding drift detected (score: {drift_score}). "
-            "AI system may be processing data from a different domain than the baseline."
-        )
-
-    if isinstance(violation_rate, float):
-        if violation_rate == 0.0:
-            narrative.append(
-                "LLM output schema violation rate is 0.0% — "
-                "all verdict records conform to expected PASS/FAIL/WARN enum."
-            )
-        else:
-            narrative.append(
-                f"LLM output schema violation rate: {violation_rate:.1%} (trend: {viol_trend}). "
-                "Monitor for rising trend which may indicate prompt or model degradation."
-            )
-
-    if trace_status == "PASS":
-        total_t = trace_check.get("total_traces", 0)
-        narrative.append(
-            f"LangSmith trace schema check passed: {total_t} traces validated, "
-            "all required fields present and timestamps valid."
-        )
+def build_contract(
+    contract_id:     str,
+    source_path:     str,
+    column_profiles: dict,
+    downstream:      list[dict],
+) -> dict:
+    schema = {
+        col: profile_to_clause(prof)
+        for col, prof in column_profiles.items()
+    }
 
     return {
-        "overall_status":       overall_ai_status,
-        "embedding_drift":      {"score": drift_score, "status": drift_status},
-        "output_violation_rate":{"rate": violation_rate, "trend": viol_trend},
-        "trace_schema":         {"status": trace_status},
-        "narrative":            " ".join(narrative),
-    }
-
-
-# ──────────────────────────────────────────────
-# Schema changes summary
-# ──────────────────────────────────────────────
-
-def schema_changes_summary(evo_report: dict) -> list:
-    """Summarise schema changes in plain language."""
-    summaries = []
-    for report in evo_report.get("reports", []):
-        contract_id = report.get("contract_id", "unknown")
-        verdict     = report.get("compatibility_verdict", "UNKNOWN")
-        breaking    = report.get("breaking_changes", 0)
-        total       = report.get("total_changes", 0)
-
-        if verdict == "INSUFFICIENT_SNAPSHOTS":
-            continue
-        if total == 0:
-            continue
-
-        action_needed = "No action required." if breaking == 0 else (
-            f"BLOCK DEPLOY until migration checklist complete. "
-            f"See validation_reports/schema_evolution_all.json for details."
-        )
-
-        summaries.append({
-            "contract_id":         contract_id,
-            "compatibility":       verdict,
-            "total_changes":       total,
-            "breaking_changes":    breaking,
-            "action_required":     action_needed,
-            "plain_summary": (
-                f"Contract '{contract_id}': {total} schema change(s) detected "
-                f"({breaking} breaking). Verdict: {verdict}. {action_needed}"
+        "kind":       "DataContract",
+        "apiVersion": "v3.0.0",
+        "id":         contract_id,
+        "info": {
+            "title":       f"Contract — {contract_id}",
+            "version":     "1.0.0",
+            "owner":       "data-engineering-team",
+            "description": (
+                f"Auto-generated contract for {source_path}. "
+                f"Generated at {now_iso()}. "
+                "Review and validate all clauses before use in production."
             ),
-        })
-
-    return summaries
-
-
-# ──────────────────────────────────────────────
-# Main report generator
-# ──────────────────────────────────────────────
-
-def generate_report(
-    reports_dir:    str = "validation_reports",
-    violation_path: str = "violation_log/violations.jsonl",
-    ai_path:        str = "validation_reports/ai_extensions.json",
-    registry_path:  str = "contract_registry/subscriptions.yaml",
-    evo_path:       str = "validation_reports/schema_evolution_all.json",
-    output_path:    str = "enforcer_report/report_data.json",
-):
-    print("=" * 60)
-    print("  EnforcerReport Generator")
-    print("=" * 60)
-
-    # Load all data sources
-    reports    = load_all_validation_reports(reports_dir)
-    violations = load_violation_log(violation_path)
-    ai_report  = load_ai_extensions(ai_path)
-    registry   = load_registry(registry_path)
-    evo_report = load_schema_evolution(evo_path)
-
-    print(f"  Loaded {len(reports)} validation report(s)")
-    print(f"  Loaded {len(violations)} violation log entry(s)")
-    print(f"  AI extensions: {ai_report.get('overall_status', 'not found')}")
-
-    # Compute health score
-    score, all_failures = compute_health_score(reports)
-    print(f"  Data health score: {score}/100")
-
-    # Severity counts
-    sev_counts = {}
-    for f in all_failures:
-        sev = f.get("severity", "UNKNOWN")
-        sev_counts[sev] = sev_counts.get(sev, 0) + 1
-
-    # Top 3 violations in plain language
-    severity_order = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "WARNING", "UNKNOWN", "ERROR"]
-    sorted_failures = sorted(
-        all_failures,
-        key=lambda x: severity_order.index(x.get("severity", "UNKNOWN"))
-        if x.get("severity", "UNKNOWN") in severity_order else 99
-    )
-    top3_violations = [
-        plain_language_violation(f, registry)
-        for f in sorted_failures[:3]
-    ]
-
-    if not top3_violations:
-        top3_violations = [
-            "No violations detected in current validation run. "
-            "All contracts passing. System operating within defined parameters."
-        ]
-
-    # Health narrative
-    if score >= 90:
-        health_narrative = (
-            f"Score {score}/100 — All monitored data systems are operating within "
-            "contract parameters. No critical issues detected."
-        )
-    elif score >= 70:
-        health_narrative = (
-            f"Score {score}/100 — System is generally healthy but has "
-            f"{sev_counts.get('HIGH', 0)} high-severity and "
-            f"{sev_counts.get('MEDIUM', 0)} medium-severity issues requiring attention."
-        )
-    else:
-        health_narrative = (
-            f"Score {score}/100 — ATTENTION REQUIRED. "
-            f"{sev_counts.get('CRITICAL', 0)} critical violation(s) detected. "
-            "Downstream AI systems may be consuming corrupted data. Immediate action needed."
-        )
-
-    # Generate all sections
-    recommendations = generate_recommendations(all_failures, ai_report, evo_report)
-    ai_risk         = ai_risk_assessment(ai_report)
-    schema_changes  = schema_changes_summary(evo_report)
-
-    # Period
-    now   = datetime.now(timezone.utc)
-    week_ago = now - timedelta(days=7)
-    period = f"{week_ago.strftime('%Y-%m-%d')} to {now.strftime('%Y-%m-%d')}"
-
-    # Contracts summary
-    contracts_summary = []
-    for report in reports:
-        contracts_summary.append({
-            "contract_id":   report.get("contract_id", "unknown"),
-            "total_checks":  report.get("total_checks", 0),
-            "passed":        report.get("passed", 0),
-            "failed":        report.get("failed", 0),
-            "warned":        report.get("warned", 0),
-            "errored":       report.get("errored", 0),
-        })
-
-    # Full report
-    report_data = {
-        "report_metadata": {
-            "generated_at":     now.isoformat(),
-            "generated_by":     "contracts/report_generator.py",
-            "period":           period,
-            "auto_generated":   True,
-            "note": "This report is machine-generated from live validation data. Do not edit manually.",
         },
-
-        # Section 1: Data Health Score
-        "data_health_score":  score,
-        "health_narrative":   health_narrative,
-        "violations_by_severity": sev_counts,
-        "total_violations":   len(all_failures),
-        "total_violations_logged": len(violations),
-
-        # Section 2: Violations this week
-        "top_violations":     top3_violations,
-        "contracts_summary":  contracts_summary,
-
-        # Section 3: Schema changes
-        "schema_changes_detected": schema_changes,
-        "total_breaking_changes":  evo_report.get("total_breaking", 0),
-
-        # Section 4: AI system risk
-        "ai_risk_assessment": ai_risk,
-
-        # Section 5: Recommended actions
-        "recommended_actions": recommendations,
-
-        # Raw data for downstream use (Week 8 Sentinel)
-        "raw": {
-            "all_failures":    all_failures,
-            "violation_log":   violations,
-            "registry_subscriptions": len(registry.get("subscriptions", [])),
-            "contracts_monitored":    len(reports),
-        }
+        "servers": {
+            "local": {
+                "type":   "local",
+                "path":   source_path,
+                "format": "jsonl",
+            }
+        },
+        "terms": {
+            "usage":       "Internal inter-system data contract. Do not publish externally.",
+            "limitations": "confidence fields MUST remain in 0.0-1.0 float range.",
+        },
+        "schema": schema,
+        "quality": {
+            "type": "SodaChecks",
+            "specification": {
+                f"checks for {contract_id}": [
+                    "row_count >= 1",
+                    "missing_count(doc_id) = 0" if "doc_id" in schema else "row_count >= 1",
+                ]
+            },
+        },
+        "lineage": {
+            "upstream":   [],
+            "downstream": downstream,
+        },
     }
 
-    # Write output
-    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w") as f:
-        json.dump(report_data, f, indent=2, default=str)
 
-    print(f"\n  ✅  Report generated → {output_path}")
-    print(f"  📊  Health score     : {score}/100")
-    print(f"  ⚠   Violations       : {len(all_failures)} ({sev_counts})")
-    print(f"  🔀  Schema changes   : {evo_report.get('total_changes', 0)} "
-          f"({evo_report.get('total_breaking', 0)} breaking)")
-    print(f"  🤖  AI status        : {ai_report.get('overall_status', 'N/A')}")
-    print("=" * 60)
+# ── Step 5b — Generate dbt schema.yml counterpart ─────────────────────────────
 
-    return report_data
+def generate_dbt_yaml(contract: dict, contract_id: str, output_dir: str) -> None:
+    """
+    Produce a dbt-compatible schema.yml with equivalent test definitions.
+
+    Mapping
+    -------
+    required: true        ->  not_null test
+    enum: [...]           ->  accepted_values test
+    format: uuid          ->  unique test
+    minimum + maximum     ->  expression_is_true range test
+    """
+    columns: list[dict] = []
+
+    for col_name, clause in contract["schema"].items():
+        col:   dict = {"name": col_name}
+        tests: list = []
+
+        if clause.get("required"):
+            tests.append("not_null")
+
+        if "enum" in clause:
+            tests.append({"accepted_values": {"values": clause["enum"]}})
+
+        if clause.get("format") == "uuid":
+            tests.append("unique")
+
+        if clause.get("minimum") is not None and clause.get("maximum") is not None:
+            tests.append({
+                "dbt_utils.expression_is_true": {
+                    "expression": (
+                        f"{col_name} >= {clause['minimum']} "
+                        f"and {col_name} <= {clause['maximum']}"
+                    )
+                }
+            })
+
+        if tests:
+            col["tests"] = tests
+        if "description" in clause:
+            col["description"] = clause["description"]
+
+        columns.append(col)
+
+    dbt_doc = {
+        "version": 2,
+        "models": [{
+            "name":        contract_id.replace("-", "_"),
+            "description": contract["info"].get("description", ""),
+            "columns":     columns,
+        }],
+    }
+
+    dbt_path = Path(output_dir) / f"{contract_id}_dbt.yml"
+    with open(dbt_path, "w", encoding="utf-8") as fh:
+        yaml.dump(dbt_doc, fh, default_flow_style=False, sort_keys=False, allow_unicode=True)
+    print(f"  ✅  dbt schema written  -> {dbt_path}")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="EnforcerReport Generator")
-    parser.add_argument("--reports-dir",    default="validation_reports")
-    parser.add_argument("--violations",     default="violation_log/violations.jsonl")
-    parser.add_argument("--ai-report",      default="validation_reports/ai_extensions.json")
-    parser.add_argument("--registry",       default="contract_registry/subscriptions.yaml")
-    parser.add_argument("--evolution",      default="validation_reports/schema_evolution_all.json")
-    parser.add_argument("--output",         default="enforcer_report/report_data.json")
+# ── Step 6 — Save timestamped schema snapshot ─────────────────────────────────
+
+def save_snapshot(contract: dict, contract_id: str) -> Path:
+    """
+    Write a timestamped copy of the contract to schema_snapshots/{contract_id}/.
+    These snapshots are consumed by SchemaEvolutionAnalyzer to detect changes.
+    """
+    snap_dir  = Path("schema_snapshots") / contract_id
+    snap_dir.mkdir(parents=True, exist_ok=True)
+    snap_path = snap_dir / f"{now_stamp()}.yaml"
+
+    with open(snap_path, "w", encoding="utf-8") as fh:
+        yaml.dump(contract, fh, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+    print(f"  📸  Snapshot saved      -> {snap_path}")
+    return snap_path
+
+
+# ── Main ───────────────────────────────────────────────────────────────────────
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Generate a Bitol data contract from a JSONL file.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--source",      required=True,  help="Path to input JSONL file")
+    parser.add_argument("--contract-id", required=True,  help="Unique contract identifier")
+    parser.add_argument("--lineage",     default=None,   help="Path to Week 4 lineage JSONL")
+    parser.add_argument("--output",      default="generated_contracts/", help="Output directory")
     args = parser.parse_args()
 
-    generate_report(
-        reports_dir    = args.reports_dir,
-        violation_path = args.violations,
-        ai_path        = args.ai_report,
-        registry_path  = args.registry,
-        evo_path       = args.evolution,
-        output_path    = args.output,
+    print(f"\n{'='*60}")
+    print(f"  ContractGenerator")
+    print(f"{'='*60}")
+    print(f"  Source      : {args.source}")
+    print(f"  Contract ID : {args.contract_id}")
+    print(f"  Lineage     : {args.lineage or '(not provided)'}")
+    print(f"  Output      : {args.output}\n")
+
+    # 1. Load
+    print("Step 1 — Loading data ...")
+    records = load_jsonl(args.source)
+    if not records:
+        print("ERROR: No records found in source file.")
+        sys.exit(1)
+    print(f"  ✅  Loaded {len(records)} records")
+
+    # 2. Flatten
+    print("Step 2 — Flattening nested records ...")
+    df = flatten_records(records)
+    print(f"  ✅  DataFrame: {df.shape[0]} rows x {df.shape[1]} columns")
+    print(f"  📋  Columns  : {list(df.columns)}")
+
+    # 3. Profile
+    print("Step 3 — Profiling columns ...")
+    column_profiles: dict = {}
+    for col in df.columns:
+        column_profiles[col] = profile_column(df[col], col)
+        p    = column_profiles[col]
+        line = (
+            f"  📊  {col:<45} "
+            f"type={p['dtype']:<10} "
+            f"nulls={p['null_fraction']*100:5.1f}%  "
+            f"cardinality={p['cardinality']}"
+        )
+        if "stats" in p:
+            s     = p["stats"]
+            line += f"  range=[{s['min']:.3f}, {s['max']:.3f}]"
+        print(line)
+
+    # 4. Lineage
+    print("Step 4 — Loading lineage context ...")
+    downstream = load_downstream_consumers(args.lineage, args.contract_id)
+
+    # 5. Build
+    print("Step 5 — Building contract ...")
+    contract    = build_contract(
+        contract_id     = args.contract_id,
+        source_path     = args.source,
+        column_profiles = column_profiles,
+        downstream      = downstream,
     )
+    num_clauses = len(contract["schema"])
+    print(f"  ✅  {num_clauses} schema clause(s) generated")
+
+    if num_clauses < 8:
+        print(f"  ⚠  Only {num_clauses} clauses — minimum is 8.")
+
+    # 6. Write YAML
+    Path(args.output).mkdir(parents=True, exist_ok=True)
+    out_path = Path(args.output) / f"{args.contract_id}.yaml"
+    with open(out_path, "w", encoding="utf-8") as fh:
+        yaml.dump(contract, fh, default_flow_style=False, sort_keys=False, allow_unicode=True)
+    print(f"  ✅  Contract written    -> {out_path}")
+
+    # 7. Write dbt YAML
+    print("Step 6 — Generating dbt schema.yml ...")
+    generate_dbt_yaml(contract, args.contract_id, args.output)
+
+    # 8. Save snapshot
+    print("Step 7 — Saving schema snapshot ...")
+    save_snapshot(contract, args.contract_id)
+
+    print(f"\n{'='*60}")
+    print(f"  Done.  Contract has {num_clauses} clauses.")
+    print(f"  Open {out_path} and verify each clause makes sense.")
+    print(f"{'='*60}\n")
 
 
 if __name__ == "__main__":

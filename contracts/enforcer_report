@@ -1,15 +1,3 @@
-"""
-contracts/report_generator.py — EnforcerReport Generator
-=========================================================
-Auto-generates the Enforcer Report from live validation data.
-Reads from validation_reports/, violation_log/, and ai_metrics.
-
-Usage
------
-python contracts/report_generator.py \
-    --output enforcer_report/report_data.json
-"""
-
 import argparse
 import json
 import glob

@@ -1,23 +1,3 @@
-"""
-contracts/schema_analyzer.py — SchemaEvolutionAnalyzer
-=======================================================
-Diffs two consecutive schema snapshots, classifies every change
-using the Confluent-compatible taxonomy, and generates a migration
-impact report.
-
-Usage
------
-# Diff the two most recent snapshots for a contract:
-python contracts/schema_analyzer.py \
-    --contract-id week3-document-refinery-extractions \
-    --output validation_reports/schema_evolution_week3.json
-
-# Diff all contracts:
-python contracts/schema_analyzer.py \
-    --all \
-    --output validation_reports/schema_evolution_all.json
-"""
-
 import argparse
 import json
 from datetime import datetime, timezone
