@@ -1,12 +1,12 @@
 {
-  "analyzed_at": "2026-04-03T21:32:58.505955+00:00",
+  "analyzed_at": "2026-04-03T21:33:26.211246+00:00",
   "contracts_analyzed": 1,
   "total_changes": 2,
   "total_breaking": 0,
   "reports": [
     {
       "contract_id": "week3-document-refinery-extractions",
-      "analyzed_at": "2026-04-03T21:32:58.497026+00:00",
+      "analyzed_at": "2026-04-03T21:33:26.205713+00:00",
       "old_snapshot": "20260403_205431",
       "new_snapshot": "20260403_212946",
       "compatibility_verdict": "BACKWARD_COMPATIBLE",
