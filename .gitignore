@@ -10,3 +10,10 @@ venv/
 .env
 *.pyc
 __pycache__/
+
+# Web app files (local only)
+app.py
+api/
+templates/
+static/
+enforcer_report/dashboard.html
