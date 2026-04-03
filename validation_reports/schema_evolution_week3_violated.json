@@ -1,0 +1,42 @@
+{
+  "analyzed_at": "2026-04-03T21:32:58.505955+00:00",
+  "contracts_analyzed": 1,
+  "total_changes": 2,
+  "total_breaking": 0,
+  "reports": [
+    {
+      "contract_id": "week3-document-refinery-extractions",
+      "analyzed_at": "2026-04-03T21:32:58.497026+00:00",
+      "old_snapshot": "20260403_205431",
+      "new_snapshot": "20260403_212946",
+      "compatibility_verdict": "BACKWARD_COMPATIBLE",
+      "total_changes": 2,
+      "breaking_changes": 0,
+      "compatible_changes": 2,
+      "changes": [
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'extracted_fact_source_excerpt'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "extracted_fact_source_excerpt"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'extracted_fact_text'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "extracted_fact_text"
+        }
+      ],
+      "breaking_details": [],
+      "migration_checklist": [],
+      "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
+      "recommendation": "Safe to deploy \u2014 all changes are backward compatible.",
+      "critical_narrative": null,
+      "per_consumer_failure_analysis": []
+    }
+  ]
+}
