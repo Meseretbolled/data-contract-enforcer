@@ -276,10 +276,10 @@ def llm_annotate_columns(
     table_name: str,
 ) -> dict:
     """
-    Step 4 — LLM Annotation.
+    Step 4 — LLM Annotation via OpenRouter.
 
     For any column whose business meaning is ambiguous from name and sample
-    values alone, invoke Claude with:
+    values alone, invoke Claude via OpenRouter with:
       - column name
       - table/contract name
       - 5 sample values
@@ -291,10 +291,13 @@ def llm_annotate_columns(
       (c) any cross-column relationship
 
     Falls back gracefully if API key not set or API unavailable.
+    Uses OPENAI_API_KEY + OPENAI_BASE_URL (OpenRouter) — no Anthropic key needed.
     """
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    api_key  = os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
+
     if not api_key:
-        print("  ℹ  No ANTHROPIC_API_KEY — skipping LLM annotation (set key to enable)")
+        print("  ℹ  No OPENAI_API_KEY — skipping LLM annotation (set key in .env to enable)")
         return clauses
 
     # Identify columns needing annotation
@@ -307,18 +310,17 @@ def llm_annotate_columns(
         print("  ✅  All columns have sufficient descriptions — LLM annotation skipped")
         return clauses
 
-    print(f"  🤖  LLM annotating {len(to_annotate)} ambiguous column(s): {to_annotate[:5]}")
+    print(f"  🤖  LLM annotating {len(to_annotate)} ambiguous column(s) via OpenRouter: {to_annotate[:5]}")
 
     try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key, base_url=base_url)
         all_columns = list(column_profiles.keys())
 
         for col_name in to_annotate:
             profile = column_profiles[col_name]
             samples = profile.get("sample_values", [])
 
-            # Build context prompt
             prompt = f"""You are annotating a data contract for a data engineering system.
 
 Table/contract: {contract_id}
@@ -337,17 +339,15 @@ Provide a JSON object with exactly these three keys:
 Respond with ONLY the JSON object, no markdown, no preamble."""
 
             try:
-                response = client.messages.create(
-                    model="claude-3-haiku-20240307",
+                response = client.chat.completions.create(
+                    model="anthropic/claude-3-haiku",
                     max_tokens=256,
                     messages=[{"role": "user", "content": prompt}]
                 )
-                text = response.content[0].text.strip()
-                # Strip markdown fences if present
+                text = response.choices[0].message.content.strip()
                 text = re.sub(r"```[a-z]*\n?", "", text).strip()
                 annotation = json.loads(text)
 
-                # Apply annotation to clause
                 if "description" in annotation and annotation["description"]:
                     clauses[col_name]["description"] = annotation["description"]
                 if "business_rule" in annotation and annotation["business_rule"] not in ("none", ""):
@@ -362,7 +362,7 @@ Respond with ONLY the JSON object, no markdown, no preamble."""
                 continue
 
     except ImportError:
-        print("  ⚠  anthropic package not installed — pip install anthropic")
+        print("  ⚠  openai package not installed — pip install openai")
     except Exception as e:
         print(f"  ⚠  LLM annotation skipped: {str(e)[:80]}")
 

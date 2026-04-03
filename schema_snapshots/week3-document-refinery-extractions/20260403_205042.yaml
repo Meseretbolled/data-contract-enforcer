@@ -6,7 +6,7 @@ info:
   version: 1.0.0
   owner: data-engineering-team
   description: Auto-generated contract for outputs/week3/extractions.jsonl. Generated
-    at 2026-04-03T20:54:31.361752+00:00. Review and validate all clauses before use
+    at 2026-04-03T20:50:42.102232+00:00. Review and validate all clauses before use
     in production.
 servers:
   local:
@@ -56,12 +56,9 @@ schema:
   extracted_fact_text:
     type: string
     required: true
-    description: The text extracted from a document by a machine learning model, representing
-      a relevant fact or piece of information.
-    llm_business_rule: Must be a non-empty string of alphanumeric text and punctuation.
-    llm_cross_column: The extracted_fact_text must be associated with the corresponding
-      doc_id, source_path, source_hash, extraction_model, processing_time_ms, token_count_input,
-      token_count_output, and extracted_at values in the same record.
+    description: The extracted text from a document, containing a factual statement
+      about the entity or organization described in the document.
+    llm_business_rule: must be a non-empty string
   extracted_fact_confidence:
     type: number
     required: true
@@ -77,12 +74,12 @@ schema:
   extracted_fact_source_excerpt:
     type: string
     required: true
-    description: A text excerpt extracted from a source document, containing a factual
-      statement about the business or organization.
-    llm_business_rule: Must be a non-empty string.
-    llm_cross_column: The extracted_fact_source_excerpt must be associated with the
-      corresponding doc_id, source_path, source_hash, and extracted_at values in the
-      same record.
+    description: This field contains a short excerpt from the source document that
+      the extraction model has identified as a relevant fact or piece of information.
+    llm_business_rule: The value must be a non-empty string with a maximum length
+      of 1000 characters.
+    llm_cross_column: The extracted_fact_source_excerpt must be associated with a
+      valid doc_id in the same record.
 quality:
   type: SodaChecks
   specification:

@@ -2,7 +2,7 @@ version: 2
 models:
 - name: week5_event_records
   description: Auto-generated contract for outputs/week5/events.jsonl. Generated at
-    2026-04-03T20:21:30.123548+00:00. Review and validate all clauses before use in
+    2026-04-03T20:52:47.527207+00:00. Review and validate all clauses before use in
     production.
   columns:
   - name: event_id
@@ -13,6 +13,8 @@ models:
   - name: event_type
     tests:
     - not_null
+    description: The type of event that occurred, such as when an application was
+      submitted, a document was requested, or a credit analysis was completed.
   - name: aggregate_id
     tests:
     - not_null
@@ -28,6 +30,8 @@ models:
     - not_null
   - name: payload_applicant_id
   - name: payload_requested_amount_usd
+    description: The amount of money requested in the loan application, expressed
+      in US dollars.
   - name: payload_loan_purpose
     tests:
     - accepted_values:
@@ -63,6 +67,7 @@ models:
   - name: metadata_source_service
     tests:
     - not_null
+    description: The name of the service that generated the event record.
   - name: schema_version
     tests:
     - not_null
@@ -75,6 +80,8 @@ models:
     - not_null
     description: ISO 8601 timestamp in UTC (Z suffix required).
   - name: payload_deadline
+    description: The date and time by which the event payload must be processed, represented
+      in ISO 8601 format.
   - name: payload_requested_by
     tests:
     - accepted_values:
@@ -83,6 +90,8 @@ models:
         - underwriting_agent
     description: 'Enumerated value. Allowed: [''system'', ''underwriting_agent''].'
   - name: payload_analysis_type
+    description: The type of payload analysis performed for the event, such as a full
+      credit assessment.
   - name: payload_credit_score
     description: Observed range [460.000, 758.000], mean=604.900, stddev=115.760.
   - name: payload_debt_to_income_ratio
@@ -120,3 +129,6 @@ models:
   - name: payload_interest_rate
     description: Observed range [0.088, 0.175], mean=0.128, stddev=0.032.
   - name: payload_decision_rationale
+    description: A textual description of the rationale behind the decision made for
+      the event, such as an AI-assisted underwriting decision based on credit analysis
+      and compliance checks.
