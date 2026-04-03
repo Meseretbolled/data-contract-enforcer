@@ -1,6 +1,5 @@
 import argparse
 import json
-import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -8,13 +7,6 @@ from pathlib import Path
 
 import pandas as pd
 import yaml
-
-# Load .env if present
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
 
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
@@ -46,10 +38,12 @@ def infer_json_type(dtype_str: str) -> str:
 
 
 def now_iso() -> str:
+    """Return current UTC time as ISO 8601 string. No deprecation warnings."""
     return datetime.now(timezone.utc).isoformat()
 
 
 def now_stamp() -> str:
+    """Return current UTC time as YYYYMMDD_HHMMSS for filenames."""
     return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
 
@@ -101,7 +95,7 @@ def flatten_records(records: list[dict]) -> pd.DataFrame:
 
         if arrays:
             primary_key = next(iter(arrays))
-            singular    = primary_key.rstrip("s")
+            singular    = primary_key.rstrip("s")   # extracted_facts -> extracted_fact
             for item in arrays[primary_key]:
                 if isinstance(item, dict):
                     row = dict(base)
@@ -149,16 +143,33 @@ def profile_column(series: pd.Series, col_name: str) -> dict:
                 "p99":    float(clean.quantile(0.99)),
                 "stddev": float(clean.std()),
             }
-            if "confidence" in col_name:
+            # Detect suspicious distributions for ALL numeric columns
+            # and write them into the profile so profile_to_clause can embed them in the clause
+            warnings = []
+            if "confidence" in col_name or (0.0 <= clean.mean() <= 1.0 and clean.max() <= 1.0):
                 if clean.max() > 1.0:
-                    print(
-                        f"  ⚠  ALERT: '{col_name}' max={clean.max():.2f} — "
-                        f"looks like 0-100 scale, not 0.0-1.0!"
-                    )
+                    msg = (f"SCALE_VIOLATION: max={clean.max():.2f} exceeds expected 0.0-1.0 range. "
+                           f"Likely converted to 0-100 percentage scale.")
+                    warnings.append(msg)
+                    print(f"  ⚠  ALERT: '{col_name}' {msg}")
                 elif clean.mean() > 0.99:
-                    print(f"  ⚠  '{col_name}' mean={clean.mean():.4f} — possibly clamped at 1.0")
+                    msg = f"CLAMPED_HIGH: mean={clean.mean():.4f} — possibly clamped at 1.0, check extractor."
+                    warnings.append(msg)
+                    print(f"  ⚠  '{col_name}' {msg}")
                 elif clean.mean() < 0.01:
-                    print(f"  ⚠  '{col_name}' mean={clean.mean():.4f} — possibly all-zero / broken")
+                    msg = f"CLAMPED_LOW: mean={clean.mean():.4f} — possibly all-zero or broken extractor."
+                    warnings.append(msg)
+                    print(f"  ⚠  '{col_name}' {msg}")
+            # General suspicious distribution checks for any numeric column
+            if clean.std() == 0.0 and len(clean) > 1:
+                msg = f"ZERO_VARIANCE: stddev=0.0 — all values identical ({clean.iloc[0]}). Possible constant injection."
+                warnings.append(msg)
+                print(f"  ⚠  '{col_name}' {msg}")
+            if clean.min() == clean.max() and len(clean) > 1:
+                msg = f"ZERO_RANGE: min==max=={clean.min():.4f} — no variation detected."
+                warnings.append(msg)
+            if warnings:
+                profile["distribution_warnings"] = warnings
 
     return profile
 
@@ -232,151 +243,25 @@ def profile_to_clause(profile: dict) -> dict:
             f"mean={s['mean']:.3f}, stddev={s['stddev']:.3f}."
         )
 
+    # Rule 6 — embed distribution_warning into the clause for downstream programmatic use
+    if profile.get("distribution_warnings"):
+        clause["distribution_warning"] = " | ".join(profile["distribution_warnings"])
+
     return clause
 
 
-# ── Step 4 — LLM Annotation (Anthropic Claude) ────────────────────────────────
-
-# Columns whose meaning is obvious from name alone — skip LLM for efficiency
-_SKIP_LLM = {
-    "doc_id", "source_path", "source_hash", "extraction_model",
-    "extracted_at", "processing_time_ms", "token_count_input",
-    "token_count_output", "event_id", "aggregate_id", "aggregate_type",
-    "sequence_number", "schema_version", "occurred_at", "recorded_at",
-    "verdict_id", "rubric_id", "rubric_version", "evaluated_at",
-    "intent_id", "created_at", "snapshot_id", "codebase_root",
-    "git_commit", "captured_at",
-}
-
-
-def _needs_llm_annotation(col_name: str, clause: dict) -> bool:
-    """
-    Returns True if the column needs LLM annotation.
-    We annotate columns that:
-    - Don't already have a clear description
-    - Aren't in the skip list
-    - Have ambiguous names (not obviously an id, timestamp, or confidence)
-    """
-    if col_name in _SKIP_LLM:
-        return False
-    if "description" in clause and len(clause["description"]) > 40:
-        return False
-    # Skip clearly named columns
-    if col_name.endswith("_id") or col_name.endswith("_at"):
-        return False
-    if "confidence" in col_name:
-        return False
-    return True
-
-
-def llm_annotate_columns(
-    column_profiles: dict,
-    clauses: dict,
-    contract_id: str,
-    table_name: str,
-) -> dict:
-    """
-    Step 4 — LLM Annotation via OpenRouter.
-
-    For any column whose business meaning is ambiguous from name and sample
-    values alone, invoke Claude via OpenRouter with:
-      - column name
-      - table/contract name
-      - 5 sample values
-      - adjacent column names (context)
-
-    Ask for:
-      (a) plain-English description
-      (b) a business rule as a validation expression
-      (c) any cross-column relationship
-
-    Falls back gracefully if API key not set or API unavailable.
-    Uses OPENAI_API_KEY + OPENAI_BASE_URL (OpenRouter) — no Anthropic key needed.
-    """
-    api_key  = os.getenv("OPENAI_API_KEY")
-    base_url = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
-
-    if not api_key:
-        print("  ℹ  No OPENAI_API_KEY — skipping LLM annotation (set key in .env to enable)")
-        return clauses
-
-    # Identify columns needing annotation
-    to_annotate = [
-        col for col, clause in clauses.items()
-        if _needs_llm_annotation(col, clause)
-    ]
-
-    if not to_annotate:
-        print("  ✅  All columns have sufficient descriptions — LLM annotation skipped")
-        return clauses
-
-    print(f"  🤖  LLM annotating {len(to_annotate)} ambiguous column(s) via OpenRouter: {to_annotate[:5]}")
-
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key, base_url=base_url)
-        all_columns = list(column_profiles.keys())
-
-        for col_name in to_annotate:
-            profile = column_profiles[col_name]
-            samples = profile.get("sample_values", [])
-
-            prompt = f"""You are annotating a data contract for a data engineering system.
-
-Table/contract: {contract_id}
-Column name: {col_name}
-Data type: {profile.get('dtype', 'unknown')}
-Sample values (up to 5): {samples}
-Adjacent columns: {[c for c in all_columns if c != col_name][:8]}
-
-Provide a JSON object with exactly these three keys:
-{{
-  "description": "One sentence plain-English description of what this field contains and its business meaning.",
-  "business_rule": "A validation expression like 'must be positive integer' or 'must be one of [X, Y, Z]' or 'must be >= 0.0 and <= 1.0'.",
-  "cross_column": "Any cross-column relationship, e.g. 'must reference a valid doc_id in the same record' or 'none'."
-}}
-
-Respond with ONLY the JSON object, no markdown, no preamble."""
-
-            try:
-                response = client.chat.completions.create(
-                    model="anthropic/claude-3-haiku",
-                    max_tokens=256,
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                text = response.choices[0].message.content.strip()
-                text = re.sub(r"```[a-z]*\n?", "", text).strip()
-                annotation = json.loads(text)
-
-                if "description" in annotation and annotation["description"]:
-                    clauses[col_name]["description"] = annotation["description"]
-                if "business_rule" in annotation and annotation["business_rule"] not in ("none", ""):
-                    clauses[col_name]["llm_business_rule"] = annotation["business_rule"]
-                if "cross_column" in annotation and annotation["cross_column"] not in ("none", ""):
-                    clauses[col_name]["llm_cross_column"] = annotation["cross_column"]
-
-                print(f"  🤖  Annotated '{col_name}': {annotation.get('description','')[:60]}...")
-
-            except Exception as col_err:
-                print(f"  ⚠  LLM annotation failed for '{col_name}': {str(col_err)[:60]}")
-                continue
-
-    except ImportError:
-        print("  ⚠  openai package not installed — pip install openai")
-    except Exception as e:
-        print(f"  ⚠  LLM annotation skipped: {str(e)[:80]}")
-
-    return clauses
-
-
-# ── Step 5 — Load lineage context from Week 4 snapshot ────────────────────────
+# ── Step 4 — Load lineage context from Week 4 snapshot ────────────────────────
 
 def load_downstream_consumers(lineage_path: str | None, contract_id: str) -> list[dict]:
     """
     Read the most recent Week 4 lineage snapshot and find nodes that
-    consume data produced by the contract's source system.
+    consume the table produced by this contract's system.
 
-    Returns a list of downstream consumer dicts for the contract's lineage section.
+    Searches all four edge patterns:
+    1. tgt in our_nodes + READS/CONSUMES  -> src reads from us
+    2. src in our_nodes + WRITES/PRODUCES -> we write to tgt
+    3. src in our_nodes + READS           -> our table is source of READS edge
+    4. tgt in our_nodes + PRODUCES        -> someone produces into our table
     """
     if not lineage_path or not Path(lineage_path).exists():
         print("  i  No lineage file found — downstream consumers left empty.")
@@ -385,95 +270,89 @@ def load_downstream_consumers(lineage_path: str | None, contract_id: str) -> lis
     try:
         records = load_jsonl(lineage_path)
         if not records:
-            print("  ⚠  Lineage file is empty.")
             return []
 
         snapshot = records[-1]
-        nodes = {n["node_id"]: n for n in snapshot.get("nodes", [])}
-        edges = snapshot.get("edges", [])
+        system   = contract_id.split("-")[0]   # "week3" from "week3-document-refinery-..."
+        edges    = snapshot.get("edges", [])
+        nodes    = snapshot.get("nodes", [])
 
-        print(f"  🗺   Our system nodes : {set()}", end="")
+        # ── Build set of node IDs belonging to our system ──────────
+        our_nodes: set = set()
 
-        # Map contract_id to known producer node patterns
-        producer_patterns = {
-            "week3-document-refinery-extractions": [
-                "file::src/week3/extractor.py",
-                "table::extractions",
-            ],
-            "week4-lineage-snapshots": [
-                "file::src/week4/cartographer.py",
-                "table::lineage_snapshots",
-            ],
-            "week5-event-records": [
-                "table::events",
-                "file::src/week5/",
-            ],
-            "week2-verdict-records": [
-                "table::verdicts",
-            ],
-            "week1-intent-records": [
-                "table::intent_records",
-            ],
-            "langsmith-traces": [
-                "table::traces",
-            ],
-        }
-
-        our_nodes = set()
-        for pattern in producer_patterns.get(contract_id, []):
-            for nid in nodes:
-                if pattern in nid or nid.startswith(pattern):
-                    our_nodes.add(nid)
-
-        # Also find by contract_id prefix
-        prefix = contract_id.split("-")[0]
-        for nid in nodes:
-            if prefix in nid:
+        # Match by node_id or path containing system name
+        for node in nodes:
+            nid  = node.get("node_id", "")
+            path = node.get("metadata", {}).get("path", "")
+            if system in nid or system in path:
                 our_nodes.add(nid)
 
-        print(f"\r  🗺   Our system nodes : {our_nodes}")
+        # Always include the known table node for each system
+        table_map = {
+            "week3": "table::extractions",
+            "week5": "table::events",
+        }
+        if system in table_map:
+            our_nodes.add(table_map[system])
 
-        # Find downstream nodes via multiple edge patterns
-        consumers = set()
-        relationship_types = ("PRODUCES", "WRITES", "READS", "CONSUMES")
+        print(f"  🗺   Our system nodes : {our_nodes}")
+
+        # ── Find downstream consumers via all edge patterns ─────────
+        consumers: list[dict] = []
 
         for edge in edges:
             src = edge.get("source", "")
             tgt = edge.get("target", "")
             rel = edge.get("relationship", "")
 
-            # Pattern A: our node WRITES/PRODUCES to target
-            if src in our_nodes and rel in ("WRITES", "PRODUCES"):
-                consumers.add(tgt)
-
-            # Pattern B: target READS from our node
+            # Pattern 1: someone READS/CONSUMES from our node (our node is target)
+            # e.g. week4/cartographer.py --READS--> table::extractions  (wrong direction)
             if tgt in our_nodes and rel in ("READS", "CONSUMES"):
-                consumers.add(src)
-
-            # Pattern C: our node is READS target (table reads by file)
-            if src in our_nodes and rel == "READS":
-                consumers.add(tgt)
-
-            # Pattern D: reversed — target reads our table
-            if tgt in our_nodes and rel == "READS":
-                consumers.add(src)
-
-        # Remove self-references
-        consumers -= our_nodes
-
-        # Build downstream list
-        unique = []
-        seen   = set()
-        for nid in consumers:
-            if nid not in seen and nid in nodes:
-                seen.add(nid)
-                node = nodes[nid]
-                unique.append({
-                    "id":          nid,
-                    "description": f"Downstream: reads {contract_id} output via {next((e['relationship'] for e in edges if e.get('target') == nid or e.get('source') == nid), 'edge')}",
-                    "fields_consumed":    ["doc_id", "extracted_facts"],
+                consumers.append({
+                    "id":                  src,
+                    "description":         f"Downstream: reads {system} output via {rel}",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
                     "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
                 })
+
+            # Pattern 2: our node WRITES/PRODUCES to somewhere (our node is source)
+            # e.g. file::src/week3/extractor.py --WRITES--> table::extractions
+            # Skip if target is also our own node
+            if src in our_nodes and rel in ("WRITES", "PRODUCES") and tgt not in our_nodes:
+                consumers.append({
+                    "id":                  tgt,
+                    "description":         f"Downstream: receives {system} data via {rel}",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
+                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
+                })
+
+            # Pattern 3: our TABLE is SOURCE of a READS edge
+            # e.g. table::extractions --READS--> file::src/week4/cartographer.py
+            # This is how our lineage file is structured
+            if src in our_nodes and rel == "READS":
+                consumers.append({
+                    "id":                  tgt,
+                    "description":         f"Downstream: {tgt} reads from {system} table",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
+                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
+                })
+
+            # Pattern 4: our node is target of PRODUCES edge
+            if tgt in our_nodes and rel == "PRODUCES":
+                consumers.append({
+                    "id":                  src,
+                    "description":         f"Downstream: {src} produces into {system} table",
+                    "fields_consumed":     ["doc_id", "extracted_facts"],
+                    "breaking_if_changed": ["extracted_facts.confidence", "doc_id"],
+                })
+
+        # ── Deduplicate by id ───────────────────────────────────────
+        seen:   set  = set()
+        unique: list = []
+        for c in consumers:
+            if c["id"] not in seen:
+                seen.add(c["id"])
+                unique.append(c)
 
         print(f"  🔗  {len(unique)} downstream consumer(s) found in lineage.")
         return unique
@@ -483,25 +362,18 @@ def load_downstream_consumers(lineage_path: str | None, contract_id: str) -> lis
         return []
 
 
-# ── Step 6 — Assemble the full Bitol contract dict ────────────────────────────
+# ── Step 5 — Assemble the full Bitol contract dict ────────────────────────────
 
 def build_contract(
     contract_id:     str,
     source_path:     str,
     column_profiles: dict,
     downstream:      list[dict],
-    llm_annotations: dict | None = None,
 ) -> dict:
     schema = {
         col: profile_to_clause(prof)
         for col, prof in column_profiles.items()
     }
-
-    # Apply LLM annotations if provided
-    if llm_annotations:
-        for col, clause in schema.items():
-            if col in llm_annotations:
-                clause.update(llm_annotations[col])
 
     return {
         "kind":       "DataContract",
@@ -545,7 +417,7 @@ def build_contract(
     }
 
 
-# ── Step 6b — Generate dbt schema.yml counterpart ─────────────────────────────
+# ── Step 5b — Generate dbt schema.yml counterpart ─────────────────────────────
 
 def generate_dbt_yaml(contract: dict, contract_id: str, output_dir: str) -> None:
     """
@@ -582,16 +454,10 @@ def generate_dbt_yaml(contract: dict, contract_id: str, output_dir: str) -> None
                     )
                 }
             })
-            if "confidence" in col_name:
-                # Add explicit description for the critical clause
-                col["description"] = (
-                    f"BREAKING CHANGE if converted to 0-100 scale. "
-                    f"Range: [{clause['minimum']}, {clause['maximum']}]."
-                )
 
         if tests:
             col["tests"] = tests
-        if "description" in clause and "description" not in col:
+        if "description" in clause:
             col["description"] = clause["description"]
 
         columns.append(col)
@@ -611,7 +477,7 @@ def generate_dbt_yaml(contract: dict, contract_id: str, output_dir: str) -> None
     print(f"  ✅  dbt schema written  -> {dbt_path}")
 
 
-# ── Step 7 — Save timestamped schema snapshot ─────────────────────────────────
+# ── Step 6 — Save timestamped schema snapshot ─────────────────────────────────
 
 def save_snapshot(contract: dict, contract_id: str) -> Path:
     """
@@ -640,8 +506,6 @@ def main() -> None:
     parser.add_argument("--contract-id", required=True,  help="Unique contract identifier")
     parser.add_argument("--lineage",     default=None,   help="Path to Week 4 lineage JSONL")
     parser.add_argument("--output",      default="generated_contracts/", help="Output directory")
-    parser.add_argument("--no-llm",      action="store_true",
-                        help="Skip LLM annotation step (faster, no API call)")
     args = parser.parse_args()
 
     print(f"\n{'='*60}")
@@ -650,8 +514,7 @@ def main() -> None:
     print(f"  Source      : {args.source}")
     print(f"  Contract ID : {args.contract_id}")
     print(f"  Lineage     : {args.lineage or '(not provided)'}")
-    print(f"  Output      : {args.output}")
-    print(f"  LLM         : {'disabled' if args.no_llm else 'enabled (set --no-llm to skip)'}\n")
+    print(f"  Output      : {args.output}\n")
 
     # 1. Load
     print("Step 1 — Loading data ...")
@@ -684,79 +547,55 @@ def main() -> None:
             line += f"  range=[{s['min']:.3f}, {s['max']:.3f}]"
         print(line)
 
-    # 4. Build initial clauses
-    initial_clauses = {
-        col: profile_to_clause(prof)
-        for col, prof in column_profiles.items()
-    }
-
-    # 4b. LLM annotation step
-    print("Step 4 — LLM annotation of ambiguous columns ...")
-    if args.no_llm:
-        print("  ℹ  LLM annotation disabled via --no-llm flag")
-        annotated_clauses = initial_clauses
+    # 3b. Save profiling baselines explicitly from generator
+    # Ensures baselines exist even before ValidationRunner is invoked.
+    # ValidationRunner will not overwrite if they already exist.
+    baselines_path = Path("schema_snapshots/baselines.json")
+    if not baselines_path.exists():
+        print("Step 3b — Saving statistical baselines from profiling ...")
+        Path("schema_snapshots").mkdir(parents=True, exist_ok=True)
+        baseline_cols = {}
+        for col, prof in column_profiles.items():
+            if "stats" in prof:
+                s = prof["stats"]
+                baseline_cols[col] = {
+                    "mean":   s["mean"],
+                    "stddev": s["stddev"],
+                    "min":    s["min"],
+                    "max":    s["max"],
+                }
+        baseline_payload = {
+            "written_at":  datetime.now(timezone.utc).isoformat(),
+            "written_by":  "ContractGenerator",
+            "source_file": args.source,
+            "contract_id": args.contract_id,
+            "columns":     baseline_cols,
+        }
+        with open(baselines_path, "w") as fh:
+            json.dump(baseline_payload, fh, indent=2)
+        print(f"  📐  Baselines saved → {baselines_path} ({len(baseline_cols)} numeric columns)")
     else:
-        annotated_clauses = llm_annotate_columns(
-            column_profiles=column_profiles,
-            clauses=initial_clauses,
-            contract_id=args.contract_id,
-            table_name=args.source,
-        )
+        print(f"  ℹ   Baselines already exist → {baselines_path} (delete to reset)")
 
-    # 5. Lineage
-    print("Step 5 — Loading lineage context ...")
+    # 4. Lineage
+    print("Step 4 — Loading lineage context ...")
     downstream = load_downstream_consumers(args.lineage, args.contract_id)
 
-    # 6. Build contract
-    print("Step 6 — Building contract ...")
-    contract = {
-        "kind":       "DataContract",
-        "apiVersion": "v3.0.0",
-        "id":         args.contract_id,
-        "info": {
-            "title":       f"Contract — {args.contract_id}",
-            "version":     "1.0.0",
-            "owner":       "data-engineering-team",
-            "description": (
-                f"Auto-generated contract for {args.source}. "
-                f"Generated at {now_iso()}. "
-                "Review and validate all clauses before use in production."
-            ),
-        },
-        "servers": {
-            "local": {
-                "type":   "local",
-                "path":   args.source,
-                "format": "jsonl",
-            }
-        },
-        "terms": {
-            "usage":       "Internal inter-system data contract. Do not publish externally.",
-            "limitations": "confidence fields MUST remain in 0.0-1.0 float range.",
-        },
-        "schema": annotated_clauses,
-        "quality": {
-            "type": "SodaChecks",
-            "specification": {
-                f"checks for {args.contract_id}": [
-                    "row_count >= 1",
-                    "missing_count(doc_id) = 0" if "doc_id" in annotated_clauses else "row_count >= 1",
-                ]
-            },
-        },
-        "lineage": {
-            "upstream":   [],
-            "downstream": downstream,
-        },
-    }
-
+    # 5. Build
+    print("Step 5 — Building contract ...")
+    contract    = build_contract(
+        contract_id     = args.contract_id,
+        source_path     = args.source,
+        column_profiles = column_profiles,
+        downstream      = downstream,
+    )
     num_clauses = len(contract["schema"])
     print(f"  ✅  {num_clauses} schema clause(s) generated")
 
     if num_clauses < 8:
         print(f"  ⚠  Only {num_clauses} clauses — minimum is 8.")
 
-    # Write YAML
+    # 6. Write YAML
     Path(args.output).mkdir(parents=True, exist_ok=True)
     out_path = Path(args.output) / f"{args.contract_id}.yaml"
     with open(out_path, "w", encoding="utf-8") as fh:
@@ -764,11 +603,11 @@ def main() -> None:
     print(f"  ✅  Contract written    -> {out_path}")
 
     # 7. Write dbt YAML
-    print("Step 7 — Generating dbt schema.yml ...")
+    print("Step 6 — Generating dbt schema.yml ...")
     generate_dbt_yaml(contract, args.contract_id, args.output)
 
     # 8. Save snapshot
-    print("Step 8 — Saving schema snapshot ...")
+    print("Step 7 — Saving schema snapshot ...")
     save_snapshot(contract, args.contract_id)
 
     print(f"\n{'='*60}")

@@ -1,131 +1,291 @@
 {
-  "analyzed_at": "2026-04-03T20:21:30.775406+00:00",
+  "analyzed_at": "2026-04-03T21:29:47.374176+00:00",
   "contracts_analyzed": 6,
-  "total_changes": 4,
+  "total_changes": 22,
   "total_breaking": 0,
   "reports": [
     {
       "contract_id": "langsmith-traces",
-      "analyzed_at": "2026-04-03T20:21:30.724072+00:00",
-      "old_snapshot": "20260403_201909",
-      "new_snapshot": "20260403_202130",
+      "analyzed_at": "2026-04-03T21:29:47.185390+00:00",
+      "old_snapshot": "20260403_202130",
+      "new_snapshot": "20260403_205305",
       "compatibility_verdict": "BACKWARD_COMPATIBLE",
-      "total_changes": 0,
+      "total_changes": 10,
       "breaking_changes": 0,
-      "compatible_changes": 0,
-      "changes": [],
-      "breaking_details": [],
-      "migration_checklist": [],
-      "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
-      "recommendation": "Safe to deploy \u2014 all changes are backward compatible."
-    },
-    {
-      "contract_id": "week1-intent-records",
-      "analyzed_at": "2026-04-03T20:21:30.731881+00:00",
-      "old_snapshot": "20260403_201908",
-      "new_snapshot": "20260403_202129",
-      "compatibility_verdict": "BACKWARD_COMPATIBLE",
-      "total_changes": 0,
-      "breaking_changes": 0,
-      "compatible_changes": 0,
-      "changes": [],
-      "breaking_details": [],
-      "migration_checklist": [],
-      "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
-      "recommendation": "Safe to deploy \u2014 all changes are backward compatible."
-    },
-    {
-      "contract_id": "week2-verdict-records",
-      "analyzed_at": "2026-04-03T20:21:30.739200+00:00",
-      "old_snapshot": "20260403_201908",
-      "new_snapshot": "20260403_202129",
-      "compatibility_verdict": "BACKWARD_COMPATIBLE",
-      "total_changes": 0,
-      "breaking_changes": 0,
-      "compatible_changes": 0,
-      "changes": [],
-      "breaking_details": [],
-      "migration_checklist": [],
-      "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
-      "recommendation": "Safe to deploy \u2014 all changes are backward compatible."
-    },
-    {
-      "contract_id": "week3-document-refinery-extractions",
-      "analyzed_at": "2026-04-03T20:21:30.745002+00:00",
-      "old_snapshot": "20260403_201317",
-      "new_snapshot": "20260403_201321",
-      "compatibility_verdict": "BACKWARD_COMPATIBLE",
-      "total_changes": 4,
-      "breaking_changes": 0,
-      "compatible_changes": 4,
+      "compatible_changes": 10,
       "changes": [
         {
           "change_type": "no_change",
           "compatible": true,
-          "description": "No material change to 'extracted_fact_page_ref'.",
+          "description": "No material change to 'end_time'.",
           "required_action": "None.",
           "severity": "COMPATIBLE",
-          "field": "extracted_fact_page_ref"
+          "field": "end_time"
         },
         {
           "change_type": "no_change",
           "compatible": true,
-          "description": "No material change to 'processing_time_ms'.",
+          "description": "No material change to 'id'.",
           "required_action": "None.",
           "severity": "COMPATIBLE",
-          "field": "processing_time_ms"
+          "field": "id"
         },
         {
           "change_type": "no_change",
           "compatible": true,
-          "description": "No material change to 'token_count_input'.",
+          "description": "No material change to 'inputs_credit_decision'.",
           "required_action": "None.",
           "severity": "COMPATIBLE",
-          "field": "token_count_input"
+          "field": "inputs_credit_decision"
         },
         {
           "change_type": "no_change",
           "compatible": true,
-          "description": "No material change to 'token_count_output'.",
+          "description": "No material change to 'inputs_next_agent_triggered'.",
           "required_action": "None.",
           "severity": "COMPATIBLE",
-          "field": "token_count_output"
+          "field": "inputs_next_agent_triggered"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'name'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "name"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'outputs_credit_decision'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "outputs_credit_decision"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'outputs_loan_purpose'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "outputs_loan_purpose"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'run_type'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "run_type"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'start_time'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "start_time"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'total_cost'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "total_cost"
         }
       ],
       "breaking_details": [],
       "migration_checklist": [],
       "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
-      "recommendation": "Safe to deploy \u2014 all changes are backward compatible."
+      "recommendation": "Safe to deploy \u2014 all changes are backward compatible.",
+      "critical_narrative": null,
+      "per_consumer_failure_analysis": []
+    },
+    {
+      "contract_id": "week1-intent-records",
+      "analyzed_at": "2026-04-03T21:29:47.216026+00:00",
+      "old_snapshot": "20260403_202129",
+      "new_snapshot": "20260403_205232",
+      "compatibility_verdict": "BACKWARD_COMPATIBLE",
+      "total_changes": 3,
+      "breaking_changes": 0,
+      "compatible_changes": 3,
+      "changes": [
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'code_ref_file'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "code_ref_file"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'code_ref_symbol'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "code_ref_symbol"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'description'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "description"
+        }
+      ],
+      "breaking_details": [],
+      "migration_checklist": [],
+      "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
+      "recommendation": "Safe to deploy \u2014 all changes are backward compatible.",
+      "critical_narrative": null,
+      "per_consumer_failure_analysis": []
+    },
+    {
+      "contract_id": "week2-verdict-records",
+      "analyzed_at": "2026-04-03T21:29:47.248163+00:00",
+      "old_snapshot": "20260403_202129",
+      "new_snapshot": "20260403_205233",
+      "compatibility_verdict": "BACKWARD_COMPATIBLE",
+      "total_changes": 0,
+      "breaking_changes": 0,
+      "compatible_changes": 0,
+      "changes": [],
+      "breaking_details": [],
+      "migration_checklist": [],
+      "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
+      "recommendation": "Safe to deploy \u2014 all changes are backward compatible.",
+      "critical_narrative": null,
+      "per_consumer_failure_analysis": []
+    },
+    {
+      "contract_id": "week3-document-refinery-extractions",
+      "analyzed_at": "2026-04-03T21:29:47.289026+00:00",
+      "old_snapshot": "20260403_205431",
+      "new_snapshot": "20260403_212946",
+      "compatibility_verdict": "BACKWARD_COMPATIBLE",
+      "total_changes": 2,
+      "breaking_changes": 0,
+      "compatible_changes": 2,
+      "changes": [
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'extracted_fact_source_excerpt'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "extracted_fact_source_excerpt"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'extracted_fact_text'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "extracted_fact_text"
+        }
+      ],
+      "breaking_details": [],
+      "migration_checklist": [],
+      "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
+      "recommendation": "Safe to deploy \u2014 all changes are backward compatible.",
+      "critical_narrative": null,
+      "per_consumer_failure_analysis": []
     },
     {
       "contract_id": "week4-lineage-snapshots",
-      "analyzed_at": "2026-04-03T20:21:30.751563+00:00",
-      "old_snapshot": "20260403_201909",
-      "new_snapshot": "20260403_202129",
+      "analyzed_at": "2026-04-03T21:29:47.317321+00:00",
+      "old_snapshot": "20260403_202129",
+      "new_snapshot": "20260403_205236",
       "compatibility_verdict": "BACKWARD_COMPATIBLE",
-      "total_changes": 0,
+      "total_changes": 1,
       "breaking_changes": 0,
-      "compatible_changes": 0,
-      "changes": [],
+      "compatible_changes": 1,
+      "changes": [
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'node_label'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "node_label"
+        }
+      ],
       "breaking_details": [],
       "migration_checklist": [],
       "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
-      "recommendation": "Safe to deploy \u2014 all changes are backward compatible."
+      "recommendation": "Safe to deploy \u2014 all changes are backward compatible.",
+      "critical_narrative": null,
+      "per_consumer_failure_analysis": []
     },
     {
       "contract_id": "week5-event-records",
-      "analyzed_at": "2026-04-03T20:21:30.775327+00:00",
-      "old_snapshot": "20260403_201909",
-      "new_snapshot": "20260403_202130",
+      "analyzed_at": "2026-04-03T21:29:47.368665+00:00",
+      "old_snapshot": "20260403_202130",
+      "new_snapshot": "20260403_205247",
       "compatibility_verdict": "BACKWARD_COMPATIBLE",
-      "total_changes": 0,
+      "total_changes": 6,
       "breaking_changes": 0,
-      "compatible_changes": 0,
-      "changes": [],
+      "compatible_changes": 6,
+      "changes": [
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'event_type'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "event_type"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'metadata_source_service'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "metadata_source_service"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'payload_analysis_type'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "payload_analysis_type"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'payload_deadline'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "payload_deadline"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'payload_decision_rationale'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "payload_decision_rationale"
+        },
+        {
+          "change_type": "no_change",
+          "compatible": true,
+          "description": "No material change to 'payload_requested_amount_usd'.",
+          "required_action": "None.",
+          "severity": "COMPATIBLE",
+          "field": "payload_requested_amount_usd"
+        }
+      ],
       "breaking_details": [],
       "migration_checklist": [],
       "rollback_plan": "No rollback required \u2014 all changes are backward compatible.",
-      "recommendation": "Safe to deploy \u2014 all changes are backward compatible."
+      "recommendation": "Safe to deploy \u2014 all changes are backward compatible.",
+      "critical_narrative": null,
+      "per_consumer_failure_analysis": []
     }
   ]
 }

@@ -1,5 +1,8 @@
 {
-  "written_at": "2026-04-03T20:54:31.806556+00:00",
+  "written_at": "2026-04-03T21:29:46.897940+00:00",
+  "written_by": "ContractGenerator",
+  "source_file": "outputs/week3/extractions.jsonl",
+  "contract_id": "week3-document-refinery-extractions",
   "columns": {
     "processing_time_ms": {
       "mean": 1958.73,

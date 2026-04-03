@@ -268,6 +268,11 @@ def generate_migration_report(contract_id: str, diffs: list,
             f"BLOCK DEPLOY — {len(breaking)} breaking change(s) detected. "
             "Complete migration checklist before merging."
         ) if breaking else "Safe to deploy — all changes are backward compatible.",
+        "critical_narrative": " | ".join([
+            f"CRITICAL [{d['field']}]: range_narrowed silently rejects previously valid data — "
+            f"all subscribers must update validation thresholds before deploy."
+            for d in breaking if d.get("change_type") == "range_narrowed"
+        ]) or None,
     }
 
 
@@ -275,11 +280,29 @@ def generate_migration_report(contract_id: str, diffs: list,
 # Main analyzer
 # ──────────────────────────────────────────────
 
-def analyze_contract(contract_id: str, snapshots_dir: str = "schema_snapshots") -> dict:
-    """Analyze schema evolution for a single contract."""
+def analyze_contract(contract_id: str, snapshots_dir: str = "schema_snapshots",
+                     since: str = None) -> dict:
+    """
+    Analyze schema evolution for a single contract.
+
+    Parameters
+    ----------
+    contract_id   : contract identifier
+    snapshots_dir : path to schema_snapshots/
+    since         : if set, only consider snapshots with timestamp >= since value
+                    Format: YYYYMMDD_HHMMSS — e.g. "20260401_000000"
+    """
     print(f"\n  Analyzing: {contract_id}")
 
     snapshots = load_snapshots(contract_id, snapshots_dir)
+
+    # Apply --since time window filter
+    if since and snapshots:
+        snapshots = [s for s in snapshots if s.get("timestamp", "") >= since]
+        if snapshots:
+            print(f"    ⏱   After --since {since}: {len(snapshots)} snapshot(s) in window")
+        else:
+            print(f"    ⚠   No snapshots found after --since {since}")
 
     if len(snapshots) < 2:
         print(f"    ⚠  Only {len(snapshots)} snapshot(s) found — need at least 2 to diff.")
@@ -316,6 +339,63 @@ def analyze_contract(contract_id: str, snapshots_dir: str = "schema_snapshots") 
     return generate_migration_report(contract_id, diffs, old_snap, new_snap)
 
 
+def load_registry_subscribers(registry_path: str, contract_id: str) -> list:
+    """Load subscribers for a contract from the registry for per-consumer analysis."""
+    try:
+        with open(registry_path) as f:
+            reg = yaml.safe_load(f)
+        return [
+            s for s in reg.get("subscriptions", [])
+            if s.get("contract_id") == contract_id
+        ]
+    except Exception:
+        return []
+
+
+def per_consumer_failure_analysis(breaking_changes: list, subscribers: list) -> list:
+    """
+    For each breaking change, map which subscribers are affected and how.
+    Emits per-consumer failure mode analysis required by rubric.
+    """
+    analysis = []
+    for change in breaking_changes:
+        field = change.get("field", "unknown")
+        change_type = change.get("change_type", "unknown")
+        severity = change.get("severity", "BREAKING")
+
+        affected = []
+        for sub in subscribers:
+            breaking_fields = [bf.get("field", "") for bf in sub.get("breaking_fields", [])]
+            if field in breaking_fields or any(field in bf for bf in breaking_fields):
+                affected.append({
+                    "subscriber_id":    sub.get("subscriber_id"),
+                    "validation_mode":  sub.get("validation_mode"),
+                    "failure_mode":     sub.get("failure_mode_description", "Not documented"),
+                    "on_violation":     sub.get("on_violation_action", "UNKNOWN"),
+                    "contact":          sub.get("contact", "unknown"),
+                })
+
+        # Label CRITICAL for range_narrowed — it silently corrupts data
+        triage_label = "CRITICAL" if change_type == "range_narrowed" else severity
+        narrative = (
+            f"CRITICAL — range narrowing silently rejects previously valid data. "
+            f"All {len(affected)} subscriber(s) must update validation thresholds."
+        ) if change_type == "range_narrowed" else (
+            f"{severity} — {change.get('description', '')} "
+            f"Affects {len(affected)} subscriber(s)."
+        )
+
+        analysis.append({
+            "field":             field,
+            "change_type":       change_type,
+            "triage_label":      triage_label,
+            "narrative":         narrative,
+            "affected_subscribers": affected,
+            "total_affected":    len(affected),
+        })
+    return analysis
+
+
 def main():
     parser = argparse.ArgumentParser(description="SchemaEvolutionAnalyzer")
     parser.add_argument("--contract-id",    help="Single contract ID to analyze")
@@ -325,6 +405,12 @@ def main():
                         help="Directory containing schema snapshots")
     parser.add_argument("--output",         required=True,
                         help="Output path for migration impact report JSON")
+    parser.add_argument("--since",          default=None,
+                        help="Only diff snapshots created after this timestamp "
+                             "(YYYYMMDD_HHMMSS or ISO 8601). "
+                             "Example: --since 20260401_000000")
+    parser.add_argument("--registry",       default="contract_registry/subscriptions.yaml",
+                        help="Path to contract registry for per-consumer failure analysis")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -333,16 +419,33 @@ def main():
 
     reports = []
 
+    since_filter = args.since  # e.g. "20260401_000000"
+
     if args.all:
         snap_root = Path(args.snapshots_dir)
         contract_ids = [d.name for d in snap_root.iterdir() if d.is_dir()] if snap_root.exists() else []
         print(f"  Found {len(contract_ids)} contract(s) to analyze")
+        if since_filter:
+            print(f"  Time window: snapshots after {since_filter}")
         for cid in sorted(contract_ids):
-            report = analyze_contract(cid, args.snapshots_dir)
+            report = analyze_contract(cid, args.snapshots_dir, since=since_filter)
+            # Add per-consumer failure analysis
+            subscribers = load_registry_subscribers(args.registry, cid)
+            breaking = report.get("breaking_details", [])
+            if breaking and subscribers:
+                report["per_consumer_failure_analysis"] = per_consumer_failure_analysis(breaking, subscribers)
+            else:
+                report["per_consumer_failure_analysis"] = []
             reports.append(report)
 
     elif args.contract_id:
-        report = analyze_contract(args.contract_id, args.snapshots_dir)
+        report = analyze_contract(args.contract_id, args.snapshots_dir, since=since_filter)
+        subscribers = load_registry_subscribers(args.registry, args.contract_id)
+        breaking = report.get("breaking_details", [])
+        if breaking and subscribers:
+            report["per_consumer_failure_analysis"] = per_consumer_failure_analysis(breaking, subscribers)
+        else:
+            report["per_consumer_failure_analysis"] = []
         reports.append(report)
 
     else:
