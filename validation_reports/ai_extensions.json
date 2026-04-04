@@ -1,6 +1,6 @@
 {
-  "run_id": "fde6eaf7-a597-4489-9a63-c430bc69061f",
-  "run_at": "2026-04-03T20:13:22.177451+00:00",
+  "run_id": "b31b40b6-6ab5-415c-8215-27a8dddde0c4",
+  "run_at": "2026-04-04T14:49:39.019642+00:00",
   "extensions": {
     "embedding_drift": {
       "status": "BASELINE_SET",
@@ -47,6 +47,5 @@
       "interpretation": "\u2705 210 traces checked \u2014 0 schema violations (0.0%)."
     }
   },
-  "overall_status": "PASS",
-  "violations_written_to_log": 0
+  "overall_status": "PASS"
 }
