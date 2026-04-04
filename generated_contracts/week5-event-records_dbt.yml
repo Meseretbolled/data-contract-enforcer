@@ -2,7 +2,7 @@ version: 2
 models:
 - name: week5_event_records
   description: Auto-generated contract for outputs/week5/events.jsonl. Generated at
-    2026-04-03T21:50:27.258895+00:00. Review and validate all clauses before use in
+    2026-04-04T15:02:12.569875+00:00. Review and validate all clauses before use in
     production.
   columns:
   - name: event_id
@@ -13,11 +13,10 @@ models:
   - name: event_type
     tests:
     - not_null
-    description: The type of event that occurred in the data engineering system, such
-      as when an application was submitted, a document was requested, credit analysis
-      was requested or completed, or a compliance check was completed.
-    llm_business_rule: Must be one of ['ApplicationSubmitted', 'DocumentUploadRequested',
-      'CreditAnalysisRequested', 'CreditAnalysisCompleted', 'ComplianceCheckCompleted'].
+    description: The type of event that occurred, such as when an application was
+      submitted, a document was requested, or a credit analysis was completed.
+    llm_business_rule: must be one of ['ApplicationSubmitted', 'DocumentUploadRequested',
+      'CreditAnalysisRequested', 'CreditAnalysisCompleted', 'ComplianceCheckCompleted']
   - name: aggregate_id
     tests:
     - not_null
@@ -33,8 +32,8 @@ models:
     - not_null
   - name: payload_applicant_id
   - name: payload_requested_amount_usd
-    description: The amount in US dollars that was requested for the event.
-    llm_business_rule: Must be a positive decimal number.
+    description: The requested amount of the loan in US dollars.
+    llm_business_rule: Must be a valid positive monetary value.
   - name: payload_loan_purpose
     tests:
     - accepted_values:
@@ -71,7 +70,7 @@ models:
     tests:
     - not_null
     description: The name of the service that generated the event record.
-    llm_business_rule: 'Must be one of the following values: [''week5-apex-ledger'']'
+    llm_business_rule: must be one of ['week5-apex-ledger']
   - name: schema_version
     tests:
     - not_null
@@ -84,9 +83,9 @@ models:
     - not_null
     description: ISO 8601 timestamp in UTC (Z suffix required).
   - name: payload_deadline
-    description: The timestamp by which the event payload must be processed, represented
-      in UTC time.
-    llm_business_rule: Must be a valid ISO 8601 timestamp in the future.
+    description: The date and time by which the payload associated with the event
+      record must be processed, in UTC format.
+    llm_business_rule: Must be a valid ISO 8601 datetime string in the format 'YYYY-MM-DDTHH:mm:ss.ssssssZ'.
   - name: payload_requested_by
     tests:
     - accepted_values:
@@ -95,8 +94,8 @@ models:
         - underwriting_agent
     description: 'Enumerated value. Allowed: [''system'', ''underwriting_agent''].'
   - name: payload_analysis_type
-    description: The type of payload analysis performed on the event record, such
-      as 'full_credit_assessment'.
+    description: The type of analysis performed on the event record, such as a full
+      credit assessment.
     llm_business_rule: must be one of ['full_credit_assessment']
   - name: payload_credit_score
     description: Observed range [460.000, 758.000], mean=604.900, stddev=115.760.
@@ -136,5 +135,6 @@ models:
     description: Observed range [0.088, 0.175], mean=0.128, stddev=0.032.
   - name: payload_decision_rationale
     description: A textual description of the rationale behind the decision made for
-      this event record, such as the results of an AI-assisted underwriting analysis.
-    llm_business_rule: must be a non-empty string
+      this event, such as an AI-assisted underwriting decision based on credit analysis
+      and compliance check.
+    llm_business_rule: Must be a non-empty string up to 1000 characters long.

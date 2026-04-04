@@ -6,7 +6,7 @@ info:
   version: 1.0.0
   owner: data-engineering-team
   description: Auto-generated contract for outputs/week3/extractions.jsonl. Generated
-    at 2026-04-04T15:01:59.894333+00:00. Review and validate all clauses before use
+    at 2026-04-04T14:56:18.269291+00:00. Review and validate all clauses before use
     in production.
 servers:
   local:
@@ -56,11 +56,11 @@ schema:
   extracted_fact_text:
     type: string
     required: true
-    description: The extracted text content from the data document that was processed
-      by the document refinery extraction model.
-    llm_business_rule: Must be a non-empty string.
-    llm_cross_column: The extracted text must be associated with the corresponding
-      doc_id, source_path, source_hash, and extraction_model values.
+    description: The text extracted from the document using a machine learning model,
+      containing key financial facts and figures.
+    llm_business_rule: Must be a non-empty string with at most 1000 characters.
+    llm_cross_column: The extracted text must be associated with a valid doc_id, source_path,
+      and extraction_model.
   extracted_fact_confidence:
     type: number
     required: true
@@ -76,11 +76,11 @@ schema:
   extracted_fact_source_excerpt:
     type: string
     required: true
-    description: This field contains a text excerpt extracted from a source document,
-      which represents a key fact or metric related to the business entity described
-      in the document.
-    llm_business_rule: The text excerpt must be a non-empty string.
-    llm_cross_column: The doc_id column must reference a valid document record.
+    description: This field contains excerpted text from the source document that
+      was extracted as a relevant fact by the extraction model.
+    llm_business_rule: Must be a non-empty string.
+    llm_cross_column: The extracted_fact_source_excerpt must reference a valid doc_id
+      in the table.
 quality:
   type: SodaChecks
   specification:

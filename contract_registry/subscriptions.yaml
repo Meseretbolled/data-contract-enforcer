@@ -1,8 +1,3 @@
-# contract_registry/subscriptions.yaml
-# Manually maintained registry of inter-system data dependencies.
-# Every arrow in the data flow diagram must have an entry here.
-# This is the PRIMARY source for blast radius computation.
-
 subscriptions:
 
   - contract_id: week3-document-refinery-extractions
@@ -12,17 +7,18 @@ subscriptions:
     fields_consumed: [doc_id, extracted_facts, extraction_model]
     breaking_fields:
       - field: extracted_facts.confidence
-        reason: used for node ranking; scale change (0.0-1.0 vs 0-100) breaks ordering logic silently
+        reason: "used for node ranking; scale change (0.0-1.0 vs 0-100) breaks ordering logic silently"
       - field: doc_id
-        reason: primary key used as node identity in lineage graph
+        reason: "primary key used as node identity in lineage graph"
     failure_mode_description: >
-      If extracted_facts.confidence changes scale, cartographer scores all lineage nodes
-      as 100x more reliable than they are. Every reliability-based filter produces wrong
-      results silently — no exception is raised, no pipeline crashes.
-    on_violation_action: BLOCK_DEPLOY
+      Cartographer scores lineage node reliability using extracted_facts.confidence.
+      A scale change from 0.0-1.0 to 0-100 makes every document appear 100x more
+      reliable than it actually is. All reliability-based filtering silently produces
+      wrong results with no exception raised.
     validation_mode: ENFORCE
-    registered_at: '2026-01-10T09:00:00Z'
-    contact: meseretbolled@gmail.com
+    on_violation_action: BLOCK_DEPLOY
+    registered_at: "2026-01-10T09:00:00Z"
+    contact: meseret@data-contract-enforcer
 
   - contract_id: week3-document-refinery-extractions
     subscriber_id: week7-contract-enforcer
@@ -31,113 +27,116 @@ subscriptions:
     fields_consumed: [extracted_facts.confidence, doc_id, extracted_at]
     breaking_fields:
       - field: extracted_facts.confidence
-        reason: AI extension embedding drift baseline depends on 0.0-1.0 scale
+        reason: "AI extension embedding drift baseline depends on 0.0-1.0 scale"
       - field: doc_id
-        reason: primary key for violation attribution chain
+        reason: "primary key for violation attribution chain"
     failure_mode_description: >
-      Inflated confidence values cause the enforcer to report artificially high data
-      health scores, masking real quality problems. Embedding drift baseline becomes
-      invalid and all future drift comparisons are meaningless.
-    on_violation_action: ALERT_AND_AUDIT
+      Contract enforcer uses confidence values to compute health scores and
+      establish embedding drift baselines. Inflated values (0-100 scale) cause
+      the enforcer to report artificially high health scores, masking real
+      quality problems and invalidating all future drift comparisons.
     validation_mode: AUDIT
-    registered_at: '2026-01-10T09:00:00Z'
-    contact: meseretbolled@gmail.com
+    on_violation_action: ALERT_AND_AUDIT
+    registered_at: "2026-01-10T09:00:00Z"
+    contact: meseret@data-contract-enforcer
 
   - contract_id: week4-lineage-snapshots
     subscriber_id: week7-violation-attributor
     subscriber_team: week7
     tier: 1
-    fields_consumed: [snapshot_id, node_node_id, git_commit, captured_at]
+    fields_consumed: [nodes, edges, git_commit, snapshot_id]
     breaking_fields:
-      - field: node_node_id
-        reason: attributor traverses graph using node_id as key; format change breaks traversal
+      - field: edges
+        reason: "BFS traversal depends on edge structure; schema change breaks transitive depth calculation"
       - field: git_commit
-        reason: blame chain requires valid 40-char hex commit hash
+        reason: "40-char hex used for git blame attribution; wrong format breaks scoring"
     failure_mode_description: >
-      If node_node_id format changes, BFS traversal finds zero consumers and blast
-      radius is reported as empty — violations are attributed to no-one. If git_commit
-      is invalid, blame chain returns no candidates and the violation goes untracked.
-    on_violation_action: BLOCK_DEPLOY
+      ViolationAttributor performs BFS traversal of the lineage graph to find
+      transitive contamination depth. If edge schema changes, the traversal
+      produces zero results, making blast radius appear smaller than it is.
+      Git blame attribution fails silently if commit hash format changes.
     validation_mode: ENFORCE
-    registered_at: '2026-01-10T09:00:00Z'
-    contact: meseretbolled@gmail.com
+    on_violation_action: BLOCK_DEPLOY
+    registered_at: "2026-01-10T09:00:00Z"
+    contact: meseret@data-contract-enforcer
 
   - contract_id: week5-event-records
     subscriber_id: week7-contract-enforcer
     subscriber_team: week7
     tier: 2
-    fields_consumed: [event_id, event_type, aggregate_id, sequence_number, occurred_at, recorded_at]
+    fields_consumed: [event_id, event_type, sequence_number, occurred_at, recorded_at]
     breaking_fields:
-      - field: occurred_at
-        reason: temporal ordering contract requires occurred_at <= recorded_at
       - field: sequence_number
-        reason: monotonic increase check depends on integer sequence per aggregate
+        reason: "monotonic integer required for event ordering; gaps or resets break causal chain reconstruction"
+      - field: occurred_at
+        reason: "must be <= recorded_at; violation breaks temporal ordering guarantees"
       - field: event_type
-        reason: PascalCase enum validation breaks if format changes
+        reason: "PascalCase enum; unknown values cause downstream routing failures"
     failure_mode_description: >
-      Out-of-order events cause the enforcer to miss causal violations. A negative
-      sequence_number makes monotonic checks always pass. Non-PascalCase event types
-      cause the enum check to fire false positives on every record.
-    on_violation_action: QUARANTINE
+      Contract enforcer uses event sequence numbers to verify causal ordering.
+      Non-monotonic sequences cause the enforcer to misclassify out-of-order
+      events as violations. Timestamp violations break the occurred_at <= recorded_at
+      invariant which all downstream audit queries depend on.
     validation_mode: ENFORCE
-    registered_at: '2026-01-10T09:00:00Z'
-    contact: meseretbolled@gmail.com
+    on_violation_action: QUARANTINE
+    registered_at: "2026-01-10T09:00:00Z"
+    contact: meseret@data-contract-enforcer
 
   - contract_id: langsmith-traces
     subscriber_id: week7-ai-extensions
     subscriber_team: week7
     tier: 2
-    fields_consumed: [id, name, run_type, start_time, end_time, total_tokens, prompt_tokens, completion_tokens]
+    fields_consumed: [id, name, run_type, start_time, end_time, total_cost]
     breaking_fields:
       - field: run_type
-        reason: AI extension filters by run_type for LLM vs chain classification
-      - field: total_tokens
-        reason: token budget monitoring baseline depends on this field
-      - field: start_time
-        reason: latency computation requires valid ISO 8601 timestamps
+        reason: "enum [llm, chain, tool, retriever, embedding]; unknown values break trace categorisation"
+      - field: end_time
+        reason: "must be > start_time; violation breaks latency calculation"
+      - field: total_cost
+        reason: "used for cost monitoring baseline; type change breaks aggregation"
     failure_mode_description: >
-      If run_type changes format, all LLM traces are misclassified as chain traces
-      and violation rate tracking becomes meaningless. If total_tokens is always zero,
-      cost monitoring never fires — token budget violations go undetected.
-    on_violation_action: ALERT_AND_AUDIT
+      AI extensions module validates trace schema to detect LLM behaviour changes.
+      Unknown run_type values break trace categorisation and violation rate calculations.
+      Timestamp ordering violations cause negative latency values in cost reports.
     validation_mode: AUDIT
-    registered_at: '2026-01-10T09:00:00Z'
-    contact: meseretbolled@gmail.com
+    on_violation_action: ALERT_AND_AUDIT
+    registered_at: "2026-01-10T09:00:00Z"
+    contact: meseret@data-contract-enforcer
 
   - contract_id: week2-verdict-records
     subscriber_id: week7-ai-extensions
     subscriber_team: week7
     tier: 2
-    fields_consumed: [verdict_id, overall_verdict, overall_score, confidence, evaluated_at]
+    fields_consumed: [verdict_id, overall_verdict, confidence, target_ref, evaluated_at]
     breaking_fields:
       - field: overall_verdict
-        reason: output schema violation rate check expects exactly PASS/FAIL/WARN
+        reason: "enum [PASS, FAIL, WARN]; any other value breaks violation rate calculation"
       - field: confidence
-        reason: LLM output confidence must remain 0.0-1.0 float range
+        reason: "float 0.0-1.0; scale change breaks prompt input validation thresholds"
     failure_mode_description: >
-      If overall_verdict gains a new enum value, the violation rate check fires on
-      every verdict record — 100% false positive rate. If confidence exceeds 1.0,
-      the drift check baseline becomes invalid for all future comparisons.
-    on_violation_action: ALERT_AND_AUDIT
+      AI extensions tracks the LLM output schema violation rate using overall_verdict.
+      Values outside [PASS, FAIL, WARN] are counted as violations and raise the rate.
+      A rising violation rate signals prompt degradation or model version change.
     validation_mode: AUDIT
-    registered_at: '2026-01-10T09:00:00Z'
-    contact: meseretbolled@gmail.com
+    on_violation_action: ALERT_AND_AUDIT
+    registered_at: "2026-01-10T09:00:00Z"
+    contact: meseret@data-contract-enforcer
 
   - contract_id: week1-intent-records
     subscriber_id: week2-digital-courtroom
     subscriber_team: week2
     tier: 3
-    fields_consumed: [intent_id, code_refs, description, created_at]
+    fields_consumed: [intent_id, code_ref_confidence, code_ref_file, code_ref_symbol]
     breaking_fields:
       - field: code_ref_confidence
-        reason: verdict scoring uses confidence to weight intent-code alignment
+        reason: "float 0.0-1.0; used to weight verdict confidence; scale change silently corrupts scoring"
       - field: code_ref_file
-        reason: target_ref in verdict records references code_refs.file paths
+        reason: "file path used for code reference resolution; format change breaks lookup"
     failure_mode_description: >
-      If code_ref_confidence changes scale, every verdict score is wrong by a factor
-      of 100. If code_ref_file paths change format, target_ref lookups return null
-      and verdicts cannot be traced back to source intent records.
-    on_violation_action: ALERT_AND_AUDIT
+      Digital Courtroom uses code_ref_confidence to weight the overall verdict confidence.
+      A scale change from 0.0-1.0 to 0-100 makes the courtroom classify all code
+      references as maximally confident, producing PASS verdicts for code that should fail.
     validation_mode: AUDIT
-    registered_at: '2026-01-10T09:00:00Z'
-    contact: meseretbolled@gmail.com
+    on_violation_action: ALERT_AND_AUDIT
+    registered_at: "2026-01-10T09:00:00Z"
+    contact: meseret@data-contract-enforcer

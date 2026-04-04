@@ -6,7 +6,7 @@ info:
   version: 1.0.0
   owner: data-engineering-team
   description: Auto-generated contract for outputs/week5/events.jsonl. Generated at
-    2026-04-04T15:02:12.569875+00:00. Review and validate all clauses before use in
+    2026-04-04T14:56:29.604928+00:00. Review and validate all clauses before use in
     production.
 servers:
   local:
@@ -25,10 +25,12 @@ schema:
   event_type:
     type: string
     required: true
-    description: The type of event that occurred, such as when an application was
-      submitted, a document was requested, or a credit analysis was completed.
-    llm_business_rule: must be one of ['ApplicationSubmitted', 'DocumentUploadRequested',
-      'CreditAnalysisRequested', 'CreditAnalysisCompleted', 'ComplianceCheckCompleted']
+    description: The type of event that occurred, such as an application being submitted,
+      a document being uploaded, a credit analysis being requested or completed, or
+      a compliance check being completed.
+    llm_business_rule: Must be one of ['ApplicationSubmitted', 'DocumentUploadRequested',
+      'CreditAnalysisRequested', 'CreditAnalysisCompleted', 'ComplianceCheckCompleted'].
+    llm_cross_column: None
   aggregate_id:
     type: string
     required: true
@@ -48,10 +50,9 @@ schema:
   payload_requested_amount_usd:
     type: string
     required: false
-    description: The requested amount of the loan in US dollars.
-    llm_business_rule: Must be a valid positive monetary value.
-    llm_cross_column: Must be consistent with other columns describing the loan, such
-      as 'payload_loan_purpose'.
+    description: The amount of money requested as part of the event, expressed in
+      US dollars.
+    llm_business_rule: must be a positive number
   payload_loan_purpose:
     type: string
     required: false
@@ -90,8 +91,10 @@ schema:
   metadata_source_service:
     type: string
     required: true
-    description: The name of the service that generated the event record.
-    llm_business_rule: must be one of ['week5-apex-ledger']
+    description: The name of the service that is the source of the event data, such
+      as 'week5-apex-ledger'.
+    llm_business_rule: Must be a non-empty string.
+    llm_cross_column: None
   schema_version:
     type: string
     required: true
@@ -108,9 +111,9 @@ schema:
   payload_deadline:
     type: string
     required: false
-    description: The date and time by which the payload associated with the event
-      record must be processed, in UTC format.
-    llm_business_rule: Must be a valid ISO 8601 datetime string in the format 'YYYY-MM-DDTHH:mm:ss.ssssssZ'.
+    description: The deadline by which the payload for the event must be processed,
+      in ISO 8601 format.
+    llm_business_rule: must be a valid ISO 8601 datetime string
   payload_requested_by:
     type: string
     required: false
@@ -121,9 +124,9 @@ schema:
   payload_analysis_type:
     type: string
     required: false
-    description: The type of analysis performed on the event record, such as a full
-      credit assessment.
-    llm_business_rule: must be one of ['full_credit_assessment']
+    description: The type of analysis performed on the payload, such as a full credit
+      assessment.
+    llm_business_rule: 'Must be one of the following values: [''full_credit_assessment'']'
   payload_credit_score:
     type: number
     required: false
@@ -176,9 +179,9 @@ schema:
     type: string
     required: false
     description: A textual description of the rationale behind the decision made for
-      this event, such as an AI-assisted underwriting decision based on credit analysis
-      and compliance check.
-    llm_business_rule: Must be a non-empty string up to 1000 characters long.
+      this event record, such as an AI-assisted underwriting decision based on credit
+      analysis and compliance checks.
+    llm_business_rule: Must be a non-empty string.
 quality:
   type: SodaChecks
   specification:

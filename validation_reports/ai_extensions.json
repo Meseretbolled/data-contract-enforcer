@@ -1,6 +1,6 @@
 {
-  "run_id": "b31b40b6-6ab5-415c-8215-27a8dddde0c4",
-  "run_at": "2026-04-04T14:49:39.019642+00:00",
+  "run_id": "54a457fa-f9f7-47d9-aa9f-ad21cddfc7cd",
+  "run_at": "2026-04-04T15:02:13.019108+00:00",
   "extensions": {
     "embedding_drift": {
       "status": "BASELINE_SET",

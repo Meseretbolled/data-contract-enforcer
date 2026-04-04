@@ -6,7 +6,7 @@ info:
   version: 1.0.0
   owner: data-engineering-team
   description: Auto-generated contract for outputs/week5/events.jsonl. Generated at
-    2026-04-04T15:02:12.569875+00:00. Review and validate all clauses before use in
+    2026-04-04T15:01:09.392409+00:00. Review and validate all clauses before use in
     production.
 servers:
   local:
@@ -25,9 +25,10 @@ schema:
   event_type:
     type: string
     required: true
-    description: The type of event that occurred, such as when an application was
-      submitted, a document was requested, or a credit analysis was completed.
-    llm_business_rule: must be one of ['ApplicationSubmitted', 'DocumentUploadRequested',
+    description: The type of event that occurred in the data engineering system, such
+      as an application being submitted, a document being uploaded, or a credit analysis
+      being requested or completed.
+    llm_business_rule: Must be one of ['ApplicationSubmitted', 'DocumentUploadRequested',
       'CreditAnalysisRequested', 'CreditAnalysisCompleted', 'ComplianceCheckCompleted']
   aggregate_id:
     type: string
@@ -49,9 +50,7 @@ schema:
     type: string
     required: false
     description: The requested amount of the loan in US dollars.
-    llm_business_rule: Must be a valid positive monetary value.
-    llm_cross_column: Must be consistent with other columns describing the loan, such
-      as 'payload_loan_purpose'.
+    llm_business_rule: must be a positive number
   payload_loan_purpose:
     type: string
     required: false
@@ -108,9 +107,9 @@ schema:
   payload_deadline:
     type: string
     required: false
-    description: The date and time by which the payload associated with the event
-      record must be processed, in UTC format.
-    llm_business_rule: Must be a valid ISO 8601 datetime string in the format 'YYYY-MM-DDTHH:mm:ss.ssssssZ'.
+    description: The timestamp by which the event record's payload must be processed
+      or consumed.
+    llm_business_rule: The value must be a valid ISO 8601 timestamp in the UTC timezone.
   payload_requested_by:
     type: string
     required: false
@@ -121,8 +120,8 @@ schema:
   payload_analysis_type:
     type: string
     required: false
-    description: The type of analysis performed on the event record, such as a full
-      credit assessment.
+    description: The type of analysis performed on the payload, indicating that a
+      full credit assessment was conducted.
     llm_business_rule: must be one of ['full_credit_assessment']
   payload_credit_score:
     type: number
@@ -175,10 +174,10 @@ schema:
   payload_decision_rationale:
     type: string
     required: false
-    description: A textual description of the rationale behind the decision made for
-      this event, such as an AI-assisted underwriting decision based on credit analysis
-      and compliance check.
-    llm_business_rule: Must be a non-empty string up to 1000 characters long.
+    description: The rationale or explanation for the decision made by the AI-assisted
+      underwriting process, based on credit analysis and compliance checks for the
+      application.
+    llm_business_rule: Must be a non-empty string.
 quality:
   type: SodaChecks
   specification:
